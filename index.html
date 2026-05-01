@@ -12,7 +12,7 @@
             display: flex; height: 100vh; overflow: hidden;
         }
 
-        /* --- PC版基本レイアウト --- */
+        /* --- PC版レイアウト --- */
         .left-panel {
             flex: 1; padding: 30px; overflow-y: auto;
             background-color: #ffffff; border-right: 2px solid #ddd;
@@ -24,33 +24,25 @@
             box-shadow: -5px 0 15px rgba(0,0,0,0.05);
         }
 
-        /* --- モバイル版レイアウト：ご要望の順番に調整 --- */
+        /* --- モバイル版レイアウト（ご要望の順序） --- */
         @media (max-width: 768px) {
             body { flex-direction: column; overflow-y: auto; height: auto; }
             
-            /* パネルの順序 */
             .left-panel { order: 1; padding: 15px; border-right: none; height: auto; overflow: visible; }
             .right-panel { order: 2; width: auto; padding: 15px; box-shadow: none; background: transparent; }
 
-            /* 左パネル内（記録エリア）の順序 */
             .left-panel { display: flex; flex-direction: column; }
             .time-confirm-card { order: 1; } /* 1. 合計時間の確認 */
             .coin-record-card { order: 2; margin-top: 10px; } /* 2. コインの記録、履歴 */
-            .left-panel h1 { display: none; } /* モバイルでは見出しを隠して省スペース化 */
+            .left-panel h1 { display: none; }
 
-            /* 右パネル内（計測エリア）の順序 */
             .stopwatch-card { order: 1; } /* 3. ストップウォッチ */
             .calc-btn-item { order: 2; }
             .result-card-container { order: 3; margin-top: 10px; padding-bottom: 40px; } /* 4. 計算結果 */
         }
 
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 15px; }
-
-        /* 履歴の独立スクロール窓 */
-        .log-container {
-            height: 180px; overflow-y: auto; border: 2px solid #eee;
-            border-radius: 10px; background: #fafafa; padding: 10px; margin-top: 10px;
-        }
+        .log-container { height: 180px; overflow-y: auto; border: 2px solid #eee; border-radius: 10px; background: #fafafa; padding: 10px; margin-top: 10px; }
 
         #result-container {
             min-height: 100px; display: flex; align-items: center; justify-content: center;
@@ -78,6 +70,9 @@
         #coinLog { list-style: decimal; padding-left: 25px; margin: 0; }
         #coinLog li { padding: 8px 0; border-bottom: 1px solid #eee; }
         .li-content { display: flex; justify-content: space-between; align-items: center; }
+
+        /* 注意書きのスタイル */
+        .notice { font-size: 0.7em; color: #888; text-align: center; margin-top: 8px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -127,9 +122,10 @@
                 <button onclick="reset()" style="flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; background: #fff;">リセット</button>
                 <button onclick="add()" style="flex: 2; padding: 15px; background: #2196f3; color: white; border: none; border-radius: 10px; font-weight: bold;">タイムを上へ送る</button>
             </div>
+            <!-- 注意書き -->
+            <p class="notice">※他アプリや別サイトを開いている間は<br>ストップウォッチは正しく動作しません。</p>
         </div>
 
-        <!-- 計算ボタン -->
         <div class="calc-btn-item">
             <button class="calc-btn" onclick="calculateFinalEfficiency()">効率検証結果を見る！</button>
         </div>
@@ -177,12 +173,10 @@
                                 <span>${c} 枚${hasCoinItem ? ' <small>(1.3)</small>' : ''}</span>
                                 <button onclick="removeLine(this, ${netProfit})" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">×</button>
                             </div>`;
-            
             logList.appendChild(li);
 
             const container = document.getElementById('logContainer');
             container.scrollTop = container.scrollHeight;
-
             coinInput.value = "";
             coinInput.focus();
         }
@@ -197,7 +191,6 @@
         if (totalMinutes > 0 && totalNetProfit !== 0) {
             const finalEff = Math.floor(totalNetProfit / totalMinutes);
             document.getElementById('result').innerHTML = `<strong style="font-size:1.8em; color:#e65100;">約 ${finalEff} 枚 / 分</strong>`;
-            
             if (window.innerWidth <= 768) {
                 document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
             }
