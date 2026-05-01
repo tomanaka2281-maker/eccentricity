@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <link rel="apple-touch-icon" href="icon.png.jpg">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>ツムツム効率計算機</title>
     <style>
         body {
@@ -13,10 +13,33 @@
             color: #333;
             display: flex;
             height: 100vh;
-            overflow: hidden;
         }
 
-        /* --- 左側：入力とログ（スクロール） --- */
+        /* --- モバイル対応のレイアウト調整 --- */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                overflow-y: auto;
+                height: auto;
+            }
+            .left-panel {
+                order: 2; /* 入力と履歴を下に */
+                border-right: none !important;
+                overflow-y: visible !important;
+            }
+            .right-panel {
+                order: 1; /* 計測と結果を上に */
+                width: auto !important;
+                box-shadow: none !important;
+                padding: 15px !important;
+            }
+            #toggleBtn {
+                height: 80px !important; /* スマホでは少しコンパクトに */
+                font-size: 1.8em !important;
+            }
+        }
+
+        /* --- PC版：左側（スクロール） --- */
         .left-panel {
             flex: 1;
             padding: 30px;
@@ -25,7 +48,7 @@
             border-right: 2px solid #ddd;
         }
 
-        /* --- 右側：計測と結果（固定） --- */
+        /* --- PC版：右側（固定） --- */
         .right-panel {
             width: 420px;
             padding: 30px;
@@ -44,9 +67,8 @@
             margin-bottom: 15px;
         }
 
-        /* 結果表示エリア（最上部に固定） */
         #result-container {
-            min-height: 120px;
+            min-height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -58,7 +80,6 @@
 
         h1 { font-size: 1.4em; color: #2c3e50; margin-top: 0; }
         
-        /* 巨大スタートボタン */
         #toggleBtn {
             width: 100%;
             height: 120px;
@@ -74,23 +95,22 @@
         }
         #toggleBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 #388e3c; }
 
-        /* 入力パーツ */
         .input-group {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
         }
         input[type="number"] {
             padding: 12px;
             border: 2px solid #eee;
             border-radius: 8px;
             font-size: 1.1em;
-            width: 100px;
+            width: 80px;
         }
-        #coinInput { width: 180px; border-color: #ffeb3b; }
+        #coinInput { width: 150px; border-color: #ffeb3b; }
 
-        /* アイテムボタン */
         .item-btns button {
             padding: 10px 15px;
             border-radius: 8px;
@@ -98,6 +118,7 @@
             background: #f9f9f9;
             cursor: pointer;
             font-weight: bold;
+            margin: 2px;
         }
         .active { background-color: #ffeb3b !important; border-color: #fbc02d !important; }
 
@@ -121,18 +142,19 @@
             cursor: pointer;
             box-shadow: 0 4px 0 #e68900;
         }
-        .calc-btn:hover { background: #fb8c00; }
 
         #coinLog li {
             font-size: 1.2em;
             padding: 8px 0;
             border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
     </style>
 </head>
 <body>
 
-    <!-- 左側：データ入力エリア -->
     <div class="left-panel">
         <h1>プレイデータ記録</h1>
         
@@ -141,7 +163,6 @@
             <div class="input-group">
                 <input type="number" id="inputMin" placeholder="分"> 分
                 <input type="number" id="inputSec" placeholder="秒" step="0.1"> 秒
-                <span style="color: #666; font-size: 0.9em;">（ストップウォッチから自動反映可）</span>
             </div>
         </div>
 
@@ -149,9 +170,9 @@
             <h3>2. コインを入力</h3>
             <div class="input-group">
                 <input type="number" id="coinInput" onkeydown="handleEnter(event)" placeholder="獲得枚数"> 枚
-                <button onclick="saveCoin()" style="padding: 10px 20px; background: #eee; border-radius: 8px; cursor: pointer;">記録(Enter)</button>
+                <button onclick="saveCoin()" style="padding: 12px; background: #eee; border-radius: 8px; cursor: pointer; border:1px solid #ccc;">記録(Enter)</button>
             </div>
-            <div class="item-btns" style="margin-top: 10px;">
+            <div class="item-btns">
                 アイテム：
                 <button id="btnCoin" class="active" onclick="toggleItem('btnCoin')">+Coin</button>
                 <button id="btn5to4" class="active" onclick="toggleItem('btn5to4')">5→4</button>
@@ -160,13 +181,11 @@
         </div>
 
         <h3>履歴</h3>
-        <button onclick="allClear()" style="color: #999; border: none; background: none; cursor: pointer; text-decoration: underline;">全消去</button>
+        <button onclick="allClear()" style="color: #999; border: none; background: none; cursor: pointer; text-decoration: underline; margin-bottom: 10px;">全消去</button>
         <ol id="coinLog"></ol>
     </div>
 
-    <!-- 右側：計測・結果エリア -->
     <div class="right-panel">
-        <!-- 結果を最上部に -->
         <div id="result-container">
             <div id="result" style="font-size: 1.1em; color: #856404;">
                 ここに結果が表示されます
@@ -177,10 +196,10 @@
 
         <div class="card">
             <div id="display">0.0</div>
-            <button id="toggleBtn" onclick="work()" style="background: #4caf50;">スタート</button>
+            <button id="toggleBtn" onclick="toggleTimer()" style="background: #4caf50;">スタート</button>
             <div style="display: flex; gap: 10px;">
-                <button onclick="reset()" style="flex: 1; padding: 15px;">リセット</button>
-                <button onclick="add()" style="flex: 2; padding: 15px; background: #2196f3; color: white; border: none; font-weight: bold;">タイムを左に送る</button>
+                <button onclick="resetTimer()" style="flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc;">リセット</button>
+                <button onclick="copyToInput()" style="flex: 2; padding: 15px; background: #2196f3; color: white; border: none; border-radius: 10px; font-weight: bold;">タイムを左に送る</button>
             </div>
         </div>
 
@@ -193,60 +212,100 @@
 
 <script>
     let totalNetProfit = 0;
-    let time = 0;
+    let elapsedTime = 0; // 停止中の蓄積時間
+    let startTime = null; // 開始した時刻
     let timerId = null;
 
-    function toggleItem(btnId) {
-    const logList = document.getElementById('coinLog');
-    
-    // 履歴（li要素）が1つ以上あるかチェック
-    if (logList.children.length > 0) {
-        alert("履歴がある間はアイテム設定を変更できません。変更する場合は全ての履歴を消去してください。");
-        return; // ここで処理を終了（切り替わらない）
+    function toggleTimer() {
+        const btn = document.getElementById('toggleBtn');
+        if (timerId === null) {
+            // スタート処理
+            startTime = Date.now();
+            timerId = setInterval(updateDisplay, 100);
+            btn.innerText = "ストップ";
+            btn.style.background = "#f44336";
+            btn.style.boxShadow = "0 6px 0 #b71c1c";
+        } else {
+            // ストップ処理
+            elapsedTime += Date.now() - startTime;
+            clearInterval(timerId);
+            timerId = null;
+            btn.innerText = "スタート";
+            btn.style.background = "#4caf50";
+            btn.style.boxShadow = "0 6px 0 #388e3c";
+        }
     }
 
-    // 履歴が空の時だけ切り替えを許可
-    document.getElementById(btnId).classList.toggle('active');
-}
+    function updateDisplay() {
+        const now = Date.now();
+        const totalMs = elapsedTime + (now - startTime);
+        const seconds = (totalMs / 1000).toFixed(1);
+        document.getElementById('display').innerText = seconds;
+    }
+
+    function resetTimer() {
+        clearInterval(timerId);
+        timerId = null;
+        elapsedTime = 0;
+        startTime = null;
+        document.getElementById('display').innerText = "0.0";
+        const btn = document.getElementById('toggleBtn');
+        btn.innerText = "スタート";
+        btn.style.background = "#4caf50";
+        btn.style.boxShadow = "0 6px 0 #388e3c";
+    }
+
+    function copyToInput() {
+        let totalMs = elapsedTime;
+        if (timerId !== null) {
+            totalMs += (Date.now() - startTime);
+        }
+        const totalSeconds = totalMs / 1000;
+        document.getElementById('inputMin').value = Math.floor(totalSeconds / 60);
+        document.getElementById('inputSec').value = (totalSeconds % 60).toFixed(1);
+    }
+
+    // --- 以下、計算ロジックなどは現状を維持 ---
+    function toggleItem(btnId) {
+        if (document.getElementById('coinLog').children.length > 0) {
+            alert("履歴がある間はアイテム設定を変更できません。");
+            return;
+        }
+        document.getElementById(btnId).classList.toggle('active');
+    }
 
     function handleEnter(event) {
         if (event.key === "Enter") saveCoin();
     }
 
-   function saveCoin() {
-    const coinInput = document.getElementById('coinInput');
-    const c = parseInt(coinInput.value);
-    if (c > 0) {
-        let itemCost = 0;
-        let coinMultiplier = 1.0;
-        const hasCoinItem = document.getElementById('btnCoin').classList.contains('active');
-        
-        if (hasCoinItem) { itemCost += 500; coinMultiplier = 1.3; }
-        if (document.getElementById('btn5to4').classList.contains('active')) itemCost += 1800;
-        if (document.getElementById('btnTime').classList.contains('active')) itemCost += 1000;
+    function saveCoin() {
+        const coinInput = document.getElementById('coinInput');
+        const c = parseInt(coinInput.value);
+        if (c > 0) {
+            let itemCost = 0;
+            let coinMultiplier = 1.0;
+            const hasCoinItem = document.getElementById('btnCoin').classList.contains('active');
+            
+            if (hasCoinItem) { itemCost += 500; coinMultiplier = 1.3; }
+            if (document.getElementById('btn5to4').classList.contains('active')) itemCost += 1800;
+            if (document.getElementById('btnTime').classList.contains('active')) itemCost += 1000;
 
-        const netProfit = (c * coinMultiplier) - itemCost;
-        totalNetProfit += netProfit;
+            const netProfit = (c * coinMultiplier) - itemCost;
+            totalNetProfit += netProfit;
 
-        const logList = document.getElementById('coinLog');
-        const li = document.createElement('li');
-        
-        // 期待値表示を含めたテキスト作成
-        li.innerHTML = `${hasCoinItem ? c + "枚 (期待値:" + Math.floor(c * 1.3) + "枚)" : c + "枚"} 
-                        <button onclick="removeLine(this, ${netProfit})" style="border:none; color:red; margin-left:15px; cursor:pointer;">×</button>`;
-        
-        // prepend ではなく appendChild にすることで、下へ追加されていきます
-        logList.appendChild(li); 
-
-        // 入力後に自動で入力欄を空にして、すぐ次を打てるようにする
-        coinInput.value = "";
-        coinInput.focus();
-        
-        // 自動で一番下までスクロールさせる（履歴が増えても最新が見えるように）
-        const leftPanel = document.querySelector('.left-panel');
-        leftPanel.scrollTop = leftPanel.scrollHeight;
+            const logList = document.getElementById('coinLog');
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${hasCoinItem ? c + "枚 (期待値:" + Math.floor(c * 1.3) + "枚)" : c + "枚"}</span>
+                            <button onclick="removeLine(this, ${netProfit})" style="border:none; color:red; cursor:pointer; background:none; font-size:1.2em;">×</button>`;
+            
+            logList.appendChild(li); 
+            coinInput.value = "";
+            coinInput.focus();
+            
+            const leftPanel = document.querySelector('.left-panel');
+            leftPanel.scrollTop = leftPanel.scrollHeight;
+        }
     }
-}
 
     function removeLine(btn, profit) {
         totalNetProfit -= profit;
@@ -265,36 +324,6 @@
         } else { alert("コインの記録と合計タイムの入力が必要です！"); }
     }
 
-    function work() {
-        const btn = document.getElementById('toggleBtn');
-        if (timerId === null) {
-            timerId = setInterval(() => { time += 0.1; document.getElementById('display').innerText = time.toFixed(1); }, 100);
-            btn.innerText = "ストップ";
-            btn.style.background = "#f44336";
-            btn.style.boxShadow = "0 6px 0 #b71c1c";
-        } else {
-            clearInterval(timerId);
-            timerId = null;
-            btn.innerText = "スタート";
-            btn.style.background = "#4caf50";
-            btn.style.boxShadow = "0 6px 0 #388e3c";
-        }
-    }
-
-    function reset() {
-        clearInterval(timerId); timerId = null; time = 0;
-        document.getElementById('display').innerText = "0.0";
-        const btn = document.getElementById('toggleBtn');
-        btn.innerText = "スタート";
-        btn.style.background = "#4caf50";
-        btn.style.boxShadow = "0 6px 0 #388e3c";
-    }
-
-    function add() {
-        document.getElementById('inputMin').value = Math.floor(time / 60);
-        document.getElementById('inputSec').value = (time % 60).toFixed(1);
-    }
-
     function allClear() {
         if (confirm("全てのデータを消去しますか？")) {
             totalNetProfit = 0;
@@ -302,7 +331,7 @@
             document.getElementById('result').innerHTML = "ここに結果が表示されます";
             document.getElementById('inputMin').value = "";
             document.getElementById('inputSec').value = "";
-            reset();
+            resetTimer();
         }
     }
 </script>
