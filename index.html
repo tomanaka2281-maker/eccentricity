@@ -12,7 +12,7 @@
             display: flex; height: 100vh; overflow: hidden;
         }
 
-        /* --- 基本：PC版レイアウト（左に入力、右に計測） --- */
+        /* --- PC版レイアウト --- */
         .left-panel {
             flex: 1; padding: 30px; overflow-y: auto;
             background-color: #ffffff; border-right: 2px solid #ddd;
@@ -23,51 +23,50 @@
             box-shadow: -5px 0 15px rgba(0,0,0,0.05);
         }
 
-        /* --- モバイル版レイアウト（画面が狭い時） --- */
+        /* --- モバイル版レイアウト：計算結果を一番下へ --- */
         @media (max-width: 768px) {
             body { flex-direction: column; overflow-y: auto; height: auto; }
             .right-panel { 
                 width: auto; order: 1; padding: 15px; box-shadow: none;
             }
+            /* 入力エリアを2番目に */
             .left-panel { 
                 order: 2; padding: 15px; border-right: none; border-top: 2px solid #ddd;
             }
+            /* 結果表示だけを一番下(order:3)へ */
+            .result-card-container { order: 3; margin-top: 10px; }
         }
 
-        /* カードデザイン */
         .card {
             background: white; padding: 20px; border-radius: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 15px;
         }
 
-        /* 履歴のスクロールエリア（ここが独立して動く） */
+        /* 履歴の独立スクロール窓 */
         .log-container {
-            height: 200px; /* PC/モバイル共通の固定高さ */
+            height: 180px;
             overflow-y: auto;
             border: 2px solid #eee;
             border-radius: 10px;
             background: #fafafa;
             padding: 10px;
             margin-top: 10px;
+            scroll-behavior: smooth; /* 滑らかにスクロール */
         }
 
-        /* 結果表示エリア */
         #result-container {
             min-height: 100px; display: flex; align-items: center; justify-content: center;
             background: #fff3e0; border: 3px solid #ff9800; border-radius: 15px; text-align: center;
         }
 
-        /* ストップウォッチ表示 */
         #display { font-size: 4em; font-weight: bold; text-align: center; font-family: monospace; color: #444; }
         
-        /* 巨大ボタン */
         #toggleBtn {
             width: 100%; height: 100px; font-size: 2.2em; font-weight: bold;
             border-radius: 15px; border: none; cursor: pointer; color: white;
             box-shadow: 0 6px 0 #388e3c; margin-bottom: 10px;
         }
 
-        /* 入力パーツ */
         .input-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         input[type="number"] { padding: 12px; border: 2px solid #eee; border-radius: 8px; font-size: 1.1em; width: 100px; }
         #coinInput { width: 140px; border-color: #ffeb3b; }
@@ -76,21 +75,23 @@
         .active { background-color: #ffeb3b !important; border-color: #fbc02d !important; }
 
         .calc-btn {
-            background: #ff9800; color: white; border: none; font-size: 1.5em;
+            width: 100%; background: #ff9800; color: white; border: none; font-size: 1.5em;
             font-weight: bold; padding: 20px; border-radius: 15px; cursor: pointer;
             box-shadow: 0 4px 0 #e68900;
         }
 
-        #coinLog { list-style: none; padding: 0; margin: 0; }
-        #coinLog li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 1.1em; }
+        #coinLog { list-style: decimal; padding-left: 25px; margin: 0; }
+        #coinLog li { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 1.1em; }
+        .li-content { display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
-    <!-- 左側：プレイデータ記録（PC版） / 下側（モバイル版） -->
+    <!-- 左側エリア -->
     <div class="left-panel">
         <h1 style="font-size: 1.4em;">プレイデータ記録</h1>
 
+        <!-- コイン入力（履歴スクロール付き） -->
         <div class="card" style="border-left: 8px solid #ffeb3b;">
             <h3>コインを入力</h3>
             <div class="input-group">
@@ -103,46 +104,49 @@
                 <button id="btnTime" onclick="toggleItem('btnTime')">+Time</button>
             </div>
 
-            <!-- コイン履歴の独立スクロール -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-                <span style="font-weight: bold; font-size: 0.9em; color: #666;">直近の履歴</span>
+                <span style="font-weight: bold; font-size: 0.9em; color: #666;">履歴（下ほど最新）</span>
                 <button onclick="allClear()" style="color: #999; border: none; background: none; cursor: pointer; text-decoration: underline; font-size: 0.8em;">全消去</button>
             </div>
-            <div class="log-container">
-                <ul id="coinLog"></ul>
+            <!-- 履歴専用スクロール窓 -->
+            <div class="log-container" id="logContainer">
+                <ol id="coinLog"></ol>
             </div>
         </div>
 
+        <!-- 時間確認 -->
         <div class="card" style="border-left: 8px solid #2196f3;">
             <h3>合計時間の確認</h3>
             <div class="input-group">
                 <input type="number" id="inputMin" placeholder="分"> 分
                 <input type="number" id="inputSec" placeholder="秒" step="0.1"> 秒
             </div>
-            <p style="font-size: 0.8em; color: #666;">※右のストップウォッチから転送された時間がここに入ります。</p>
         </div>
     </div>
 
-    <!-- 右側：計測・結果（PC版） / 上側（モバイル版） -->
+    <!-- 右側エリア -->
     <div class="right-panel">
-        <div id="result-container">
-            <div id="result" style="font-size: 1.1em; color: #856404; padding: 10px;">ここに結果が表示されます</div>
-        </div>
-
-        <button class="calc-btn" onclick="calculateFinalEfficiency()">効率検証結果を見る！</button>
-
+        <!-- ストップウォッチ本体 -->
         <div class="card">
             <div id="display">0.0</div>
             <button id="toggleBtn" onclick="work()" style="background: #4caf50;">スタート</button>
             <div style="display: flex; gap: 10px;">
-                <button onclick="reset()" style="flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc;">リセット</button>
+                <button onclick="reset()" style="flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; background:#fff;">リセット</button>
                 <button onclick="add()" style="flex: 2; padding: 15px; background: #2196f3; color: white; border: none; border-radius: 10px; font-weight: bold;">タイムを左に送る</button>
             </div>
         </div>
 
-        <div style="background: #eee; padding: 15px; border-radius: 10px; font-size: 0.8em; color: #666;">
-            <strong>計算：</strong> アイテム代を引いた「純利益」÷ 合計時間<br>
-            ※+Coin期待値は 1.3倍 で計算しています。
+        <!-- 効率計算ボタン -->
+        <button class="calc-btn" onclick="calculateFinalEfficiency()">効率検証結果を見る！</button>
+
+        <!-- 結果表示エリア：モバイルではここが一番下に来る -->
+        <div class="result-card-container">
+            <div id="result-container">
+                <div id="result" style="font-size: 1.1em; color: #856404; padding: 10px;">ここに結果が表示されます</div>
+            </div>
+            <div style="margin-top: 10px; background: #eee; padding: 10px; border-radius: 10px; font-size: 0.75em; color: #666;">
+                <strong>計算：</strong> [ (枚数 × 1.3) － 代金 ] の合計 ÷ 合計分
+            </div>
         </div>
     </div>
 
@@ -178,17 +182,27 @@
 
             const logList = document.getElementById('coinLog');
             const li = document.createElement('li');
-            li.innerHTML = `<span>${c} 枚${hasCoinItem ? ' <small>(1.3倍)</small>' : ''}</span>
-                            <button onclick="removeLine(this, ${netProfit})" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">×</button>`;
+            li.innerHTML = `<div class="li-content">
+                                <span>${c} 枚${hasCoinItem ? ' <small>(1.3)</small>' : ''}</span>
+                                <button onclick="removeLine(this, ${netProfit})" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">×</button>
+                            </div>`;
             
-            // 最新を一番上に表示
-            logList.prepend(li);
+            // 下に追加していく
+            logList.appendChild(li);
+
+            // スクロールを一番下（最新）へ飛ばす
+            const container = document.getElementById('logContainer');
+            container.scrollTop = container.scrollHeight;
+
             coinInput.value = "";
             coinInput.focus();
         }
     }
 
-    function removeLine(btn, profit) { totalNetProfit -= profit; btn.parentElement.remove(); }
+    function removeLine(btn, profit) { 
+        totalNetProfit -= profit; 
+        btn.closest('li').remove(); 
+    }
 
     function calculateFinalEfficiency() {
         const m = parseFloat(document.getElementById('inputMin').value) || 0;
@@ -197,8 +211,13 @@
         if (totalMinutes > 0 && totalNetProfit !== 0) {
             const finalEff = Math.floor(totalNetProfit / totalMinutes);
             document.getElementById('result').innerHTML = `
-                <span style="font-size:0.8em; color:#666;">セッション効率</span><br>
+                <span style="font-size:0.8em; color:#666;">現在の平均効率</span><br>
                 <strong style="font-size:1.8em; color:#e65100;">約 ${finalEff} 枚 / 分</strong>`;
+            
+            // モバイル時は結果が見えるように少しスクロール
+            if (window.innerWidth <= 768) {
+                document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
+            }
         } else { alert("記録が足りません！"); }
     }
 
