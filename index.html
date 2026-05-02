@@ -71,19 +71,19 @@
 
     <div class="sidebar">
         <div id="userInfo" class="user-info"></div>
-        <div class="nav-item active" onclick="showPage('calcPage', this)">🧮 効率計算</div>
-        <div class="nav-item" onclick="showPage('dbPage', this)">📊 ランキング</div>
-        <div class="nav-item" style="margin-top:auto; color:#ff7a7a; font-size: 0.8em;" onclick="logout()">🚪 ログアウト</div>
+        <div class="nav-item active" onclick="showPage('calcPage', this)">効率計算</div>
+        <div class="nav-item" onclick="showPage('dbPage', this)">マイランキング</div>
+        <div class="nav-item" style="margin-top:auto; color:#ff7a7a; font-size: 0.8em;" onclick="logout()">ログアウト</div>
     </div>
 
     <div class="main-content">
         <div id="calcPage" class="page active">
             <div class="left-panel">
                 <div class="card" style="border-left: 8px solid #ffeb3b;">
-                    <h3>コイン入力</h3>
+                    <h3>素コイン枚数入力(コイン倍率前の枚数を入力してください)</h3>
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <input type="number" id="coinInput" onkeydown="handleEnter(event)" placeholder="枚数">
-                        <button onclick="saveCoin()" style="padding: 10px 20px; background: #eee; border-radius: 8px; cursor: pointer;">記録</button>
+                        <button onclick="saveCoin()" style="padding: 10px 20px; background: #eee; border-radius: 8px; cursor: pointer;">記録(Enter)</button>
                     </div>
                     <div class="item-btns">
                         <button id="btnCoin" class="active" onclick="toggleItem('btnCoin')">+Coin</button>
@@ -97,7 +97,7 @@
                     <div class="log-container" id="logContainer"><ul id="coinLog"></ul></div>
                 </div>
                 <div class="card" style="border-left: 8px solid #2196f3;">
-                    <h3>合計時間の設定</h3>
+                    <h3>合計時間</h3>
                     <input type="number" id="inputMin" placeholder="分"> 分
                     <input type="number" id="inputSec" placeholder="秒" step="0.1"> 秒
                 </div>
@@ -113,10 +113,10 @@
                         <button onclick="addTime()" style="flex: 2; padding: 12px; background: #2196f3; color: white; border-radius: 8px; cursor: pointer;">タイムを転送</button>
                     </div>
                 </div>
-                <button class="calc-btn" onclick="calculateFinalEfficiency()">検証結果を見る！</button>
+                <button class="calc-btn" onclick="calculateFinalEfficiency()">１分効率をみる！</button>
                 <div id="result-container">
                     <div id="result">ここに結果が表示されます</div>
-                    <button id="registerBtn" class="reg-btn" onclick="registerTsum()">この結果をクラウドに保存</button>
+                    <button id="registerBtn" class="reg-btn" onclick="registerTsum()">データベースに保存</button>
                 </div>
                 <div class="formula-note">
                     <strong>【計算式】</strong><br>
@@ -129,7 +129,7 @@
         <div id="dbPage" class="page">
             <div style="max-width: 800px; margin: 30px auto; width: 95%;">
                 <div class="card">
-                    <h2>📊 クラウドランキング</h2>
+                    <h2>１分効率マイランキング</h2>
                     <p style="font-size: 0.8em; color: #888;">同じアカウントでログインすればどの端末からも見れます</p>
                     <table id="dbTable">
                         <thead><tr><th>順位</th><th>ツム名</th><th>効率 (/分)</th><th>操作</th></tr></thead>
