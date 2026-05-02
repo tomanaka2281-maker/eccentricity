@@ -127,7 +127,7 @@
         </div>
 
         <div id="dbPage" class="page">
-            <div style="max-width: 700px; margin: 30px auto; width: 90%;">
+            <div style="max-width: 800px; margin: 30px auto; width: 95%;">
                 <div class="card">
                     <h2>📊 クラウドランキング</h2>
                     <p style="font-size: 0.8em; color: #888;">同じアカウントでログインすればどの端末からも見れます</p>
@@ -236,19 +236,41 @@
         if(!auth.currentUser) return;
         const body = document.getElementById('dbBody');
         try {
-            // orderByを使わずに取得し、JavaScript側でソートすることでインデックスエラーを回避
             const snapshot = await db.collection("rankings").where("uid", "==", auth.currentUser.uid).get();
             let dataList = [];
             snapshot.forEach(doc => { dataList.push({ id: doc.id, ...doc.data() }); });
             
-            // 効率の高い順にソート
             dataList.sort((a, b) => b.eff - a.eff);
 
             body.innerHTML = dataList.length === 0 ? "<tr><td colspan='4' style='text-align:center;'>データがありません</td></tr>" : "";
             dataList.forEach((item, i) => {
-                body.innerHTML += `<tr><td>${i+1}位</td><td>${item.name}</td><td>${item.eff.toLocaleString()}</td><td><button onclick="deleteDoc('${item.id}')" style="color:red; border:none; background:none; cursor:pointer;">削除</button></td></tr>`;
+                body.innerHTML += `
+                    <tr>
+                        <td>${i+1}位</td>
+                        <td><strong style="color:#2c3e50;">${item.name}</strong></td>
+                        <td>${item.eff.toLocaleString()}</td>
+                        <td>
+                            <button onclick="editTsumName('${item.id}', '${item.name}')" style="color:#2196f3; border:none; background:none; cursor:pointer; margin-right:10px; font-weight:bold;">編集</button>
+                            <button onclick="deleteDoc('${item.id}')" style="color:#ff5252; border:none; background:none; cursor:pointer; font-weight:bold;">削除</button>
+                        </td>
+                    </tr>`;
             });
         } catch (e) { body.innerHTML = `<tr><td colspan='4' style='color:red;'>読み込みエラー: ${e.message}</td></tr>`; }
+    }
+
+    // 名前編集用の関数
+    async function editTsumName(id, oldName) {
+        const newName = prompt("新しいツム名を入力してください", oldName);
+        if (newName && newName !== oldName) {
+            try {
+                await db.collection("rankings").doc(id).update({
+                    name: newName
+                });
+                updateDBTable(); // 表示を更新
+            } catch (e) {
+                alert("更新に失敗しました: " + e.message);
+            }
+        }
     }
 
     async function deleteDoc(id) { if(confirm("削除しますか？")) { await db.collection("rankings").doc(id).delete(); updateDBTable(); } }
