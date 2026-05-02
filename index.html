@@ -2,8 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <!-- モバイルでの勝手なズームを防ぐ設定を追加 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>ツムツム効率管理ツール</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -13,88 +12,103 @@
     <style>
         :root { --primary-color: #4caf50; --accent-color: #ff9800; --bg-color: #f0f2f5; }
         
-        /* 全体のはみ出しを防止 */
-        * { box-sizing: border-box; }
-
-        body { 
-            margin: 0; padding: 0; font-family: "Helvetica Neue", Arial, sans-serif; 
-            background-color: var(--bg-color); color: #333; 
-            display: flex; flex-direction: column; height: 100vh; 
-            overflow: hidden; /* 全体のスクロールを禁止して内部スクロールに任せる */
-            width: 100vw;
-        }
+        /* 基本は縦並び（モバイル・iPad用） */
+        body { margin: 0; padding: 0; font-family: "Helvetica Neue", Arial, sans-serif; background-color: var(--bg-color); color: #333; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
+        /* PCサイズ（横幅768px以上）のみ横並びに戻す */
         @media (min-width: 768px) {
             body { flex-direction: row; }
         }
         
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
-        .login-card { background: white; padding: 30px; border-radius: 20px; text-align: center; color: #333; width: 90%; max-width: 400px; }
-        .google-btn { background: #4285f4; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1em; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .google-btn { background: #4285f4; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1em; transition: 0.3s; }
 
-        .sidebar { background: #2c3e50; color: white; display: flex; flex-direction: row; flex-shrink: 0; width: 100%; }
+        /* サイドバー：モバイルでは横に、PCでは縦に */
+        .sidebar { background: #2c3e50; color: white; display: flex; flex-direction: row; flex-shrink: 0; }
         @media (min-width: 768px) {
-            .sidebar { width: 200px; flex-direction: column; height: 100vh; }
+            .sidebar { width: 200px; flex-direction: column; }
         }
         
-        .user-info { padding: 20px; border-bottom: 1px solid #444; text-align: center; background: #243342; display: none; }
-        @media (min-width: 768px) { .user-info { display: block; } }
+        .user-info { padding: 10px; border-bottom: 1px solid #444; text-align: center; background: #243342; display: none; }
+        @media (min-width: 768px) {
+            .user-info { display: block; padding: 20px; }
+        }
         .user-info img { width: 50px; border-radius: 50%; border: 2px solid var(--primary-color); margin-bottom: 10px; }
+        .user-info div { font-size: 0.85em; font-weight: bold; }
         
-        .nav-item { padding: 15px 10px; cursor: pointer; flex: 1; text-align: center; font-weight: bold; font-size: 0.9em; }
-        @media (min-width: 768px) { .nav-item { padding: 15px 20px; text-align: left; flex: none; } }
+        .nav-item { padding: 15px 10px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: bold; font-size: 0.9em; flex: 1; }
+        @media (min-width: 768px) {
+            .nav-item { padding: 15px 20px; justify-content: flex-start; flex: none; }
+        }
+        .nav-item:hover { background: #34495e; }
         .nav-item.active { background: var(--primary-color); }
 
-        .main-content { flex: 1; display: flex; overflow: hidden; flex-direction: column; width: 100%; }
-        @media (min-width: 1024px) { .main-content { flex-direction: row; } }
-
-        .page { display: none; width: 100%; height: 100%; flex-direction: column; overflow-x: hidden; overflow-y: auto; }
-        .page.active { display: flex; }
-
-        .left-panel { flex: 1; padding: 15px; background: white; width: 100%; }
-        @media (min-width: 1024px) { .left-panel { padding: 25px; border-right: 2px solid #ddd; } }
-
-        .right-panel { width: 100%; padding: 15px; background: #f8f9fa; gap: 15px; flex-shrink: 0; }
-        @media (min-width: 1024px) { .right-panel { width: 380px; padding: 25px; } }
-
-        .card { background: white; padding: 18px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 15px; width: 100%; }
-        
-        /* 入力フォームのフォントサイズを16px以上に（iOSの自動ズーム防止） */
-        input[type="number"], input[type="text"] { 
-            padding: 12px; border: 2px solid #eee; border-radius: 8px; font-size: 16px; width: 100px; 
+        .main-content { flex: 1; display: flex; overflow: hidden; position: relative; flex-direction: column; }
+        @media (min-width: 1024px) {
+            .main-content { flex-direction: row; }
         }
-        
-        .log-container { height: 150px; overflow-y: auto; border: 2px solid #eee; border-radius: 10px; background: #fafafa; padding: 10px; }
-        #coinLog { list-style: none; padding: 0; margin: 0; }
-        #coinLog li { padding: 8px 0; border-bottom: 1px solid #eee; }
 
-        #display { font-size: 3rem; font-weight: bold; text-align: center; font-family: monospace; }
-        #toggleBtn { width: 100%; height: 70px; font-size: 1.5em; font-weight: bold; border-radius: 15px; border: none; cursor: pointer; color: white; }
+        .page { display: none; width: 100%; height: 100%; flex-direction: column; overflow-y: auto; }
+        .page.active { display: flex; }
+        @media (min-width: 1024px) {
+            .page.active { flex-direction: row; overflow: hidden; }
+        }
+
+        .left-panel { flex: 1; padding: 15px; background: white; border-bottom: 2px solid #ddd; }
+        @media (min-width: 1024px) {
+            .left-panel { padding: 25px; border-bottom: none; border-right: 2px solid #ddd; overflow-y: auto; }
+        }
+
+        .right-panel { width: 100%; padding: 15px; background: #f8f9fa; display: flex; flex-direction: column; gap: 15px; flex-shrink: 0; }
+        @media (min-width: 1024px) {
+            .right-panel { width: 380px; padding: 25px; }
+        }
+
+        .card { background: white; padding: 18px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 15px; }
+        input[type="number"] { padding: 12px; border: 2px solid #eee; border-radius: 8px; font-size: 1.1em; width: 100px; }
         
-        .calc-btn { width: 100%; background: #ff9800; color: white; border: none; font-size: 1.2em; font-weight: bold; padding: 15px; border-radius: 15px; margin-top: 10px; }
+        .log-container { height: 150px; overflow-y: auto; border: 2px solid #eee; border-radius: 10px; background: #fafafa; padding: 10px; margin-top: 10px; }
+        #coinLog { list-style: decimal; padding-left: 25px; margin: 0; }
+        #coinLog li { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.95em; }
+        .li-content { display: flex; justify-content: space-between; align-items: center; }
+        .sub-info { font-size: 0.8em; color: #888; margin-left: 10px; }
+
+        #display { font-size: 3rem; font-weight: bold; text-align: center; font-family: monospace; color: #444; }
+        @media (min-width: 768px) { #display { font-size: 4em; } }
         
-        .item-btns { display: flex; gap: 5px; width: 100%; }
-        .item-btns button { flex: 1; padding: 10px 5px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; font-weight: bold; font-size: 0.8em; }
+        #toggleBtn { width: 100%; height: 70px; font-size: 1.8em; font-weight: bold; border-radius: 15px; border: none; cursor: pointer; color: white; box-shadow: 0 5px 0 #388e3c; }
+        
+        #result-container { min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff3e0; border: 3px solid #ff9800; border-radius: 15px; text-align: center; padding: 15px; }
+        .calc-btn { width: 100%; background: #ff9800; color: white; border: none; font-size: 1.3em; font-weight: bold; padding: 15px; border-radius: 15px; cursor: pointer; box-shadow: 0 4px 0 #e68900; }
+        
+        .item-btns { display: flex; flex-wrap: wrap; gap: 5px; }
+        .item-btns button { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; cursor: pointer; font-weight: bold; font-size: 0.8em; }
         .item-btns button.active { background-color: #ffeb3b !important; border-color: #fbc02d !important; }
-
-        table { width: 100%; border-collapse: collapse; font-size: 0.85em; table-layout: fixed; }
-        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        .warning-text { font-size: 0.7em; color: #d32f2f; margin-top: 8px; text-align: center; font-weight: bold; }
+        .formula-note { font-size: 0.7em; color: #666; margin-top: 10px; line-height: 1.4; }
+        .reg-btn { margin-top: 10px; padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: none; }
+        
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; font-size: 0.85em; }
+        @media (min-width: 768px) { table { font-size: 1em; } }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
     </style>
 </head>
 <body>
 
-    <!-- ログイン・コンテンツ部分は前回と同じ（構造のみ最適化） -->
     <div id="loginOverlay">
         <div class="login-card">
-            <h2>Tsum Manager Pro</h2>
-            <button class="google-btn" onclick="login()">Googleでログイン</button>
+            <h2 style="margin-top:0;">Tsum Manager Pro</h2>
+            <p style="color:#666;">データを保存するには<br>ログインが必要です</p>
+            <button class="google-btn" onclick="login()">Googleアカウントでログイン</button>
         </div>
     </div>
 
     <div class="sidebar">
         <div id="userInfo" class="user-info"></div>
         <div class="nav-item active" onclick="showPage('calcPage', this)">効率計算</div>
-        <div class="nav-item" onclick="showPage('dbPage', this)">ランキング</div>
+        <div class="nav-item" onclick="showPage('dbPage', this)">データベース</div>
         <div class="nav-item" style="color:#ff7a7a;" onclick="logout()">ログアウト</div>
     </div>
 
@@ -102,26 +116,26 @@
         <div id="calcPage" class="page active">
             <div class="left-panel">
                 <div class="card" style="border-left: 8px solid #ffeb3b;">
-                    <h3 style="margin-top:0; font-size:1em;">素コイン入力</h3>
+                    <h3>素コイン枚数入力(コイン倍率前の枚数を入力してください)</h3>
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <input type="number" id="coinInput" onkeydown="handleEnter(event)" placeholder="枚数" inputmode="numeric">
-                        <button onclick="saveCoin()" style="flex:1; background:#eee; border:none; border-radius:8px;">記録</button>
+                        <input type="number" id="coinInput" onkeydown="handleEnter(event)" placeholder="枚数">
+                        <button onclick="saveCoin()" style="padding: 10px 15px; background: #eee; border-radius: 8px; cursor: pointer; font-size: 0.8em;">記録(Enter)</button>
                     </div>
                     <div class="item-btns">
                         <button id="btnCoin" class="active" onclick="toggleItem('btnCoin')">+Coin</button>
                         <button id="btn5to4" class="active" onclick="toggleItem('btn5to4')">5→4</button>
                         <button id="btnTime" onclick="toggleItem('btnTime')">+Time</button>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-top: 15px; align-items: center;">
-                        <span style="font-weight: bold; font-size: 0.8em;">履歴</span>
-                        <button onclick="allClear()" style="color: #999; border: none; background: none; text-decoration: underline; font-size: 0.8em;">全消去</button>
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                        <span style="font-weight: bold; font-size: 0.8em; color: #666;">履歴</span>
+                        <button onclick="allClear()" style="color: #999; border: none; background: none; text-decoration: underline; cursor: pointer; font-size: 0.8em;">全消去</button>
                     </div>
-                    <div class="log-container"><ul id="coinLog"></ul></div>
+                    <div class="log-container" id="logContainer"><ul id="coinLog"></ul></div>
                 </div>
                 <div class="card" style="border-left: 8px solid #2196f3;">
-                    <h3 style="margin-top:0; font-size:1em;">合計時間</h3>
-                    <input type="number" id="inputMin" placeholder="分" inputmode="numeric"> 分
-                    <input type="number" id="inputSec" placeholder="秒" step="0.1" inputmode="decimal"> 秒
+                    <h3>合計時間</h3>
+                    <input type="number" id="inputMin" placeholder="分"> 分
+                    <input type="number" id="inputSec" placeholder="秒" step="0.1"> 秒
                 </div>
             </div>
 
@@ -129,25 +143,32 @@
                 <div class="card">
                     <div id="display">0.0</div>
                     <button id="toggleBtn" onclick="work()" style="background: #4caf50;">スタート</button>
+                    <div class="warning-text">※他アプリや別サイトを開いている間は<br>ストップウォッチは正しく動作しません。</div>
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <button onclick="resetTimer()" style="flex: 1; padding: 12px; background: #fff; border: 1px solid #ccc; border-radius: 8px;">リセット</button>
-                        <button onclick="addTime()" style="flex: 2; padding: 12px; background: #2196f3; color: white; border-radius: 8px; border:none;">タイム転送</button>
+                        <button onclick="resetTimer()" style="flex: 1; padding: 12px; background: #fff; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; font-size: 0.8em;">リセット</button>
+                        <button onclick="addTime()" style="flex: 2; padding: 12px; background: #2196f3; color: white; border-radius: 8px; cursor: pointer; font-size: 0.8em;">タイムを転送</button>
                     </div>
                 </div>
-                <button class="calc-btn" onclick="calculateFinalEfficiency()">１分効率を計算！</button>
-                <div id="result-container" style="margin-top:10px; text-align:center;">
-                    <div id="result"></div>
-                    <button id="registerBtn" class="calc-btn" style="display:none; background:#2196f3;" onclick="registerTsum()">保存</button>
+                <button class="calc-btn" onclick="calculateFinalEfficiency()">１分効率をみる！</button>
+                <div id="result-container">
+                    <div id="result">ここに結果が表示されます</div>
+                    <button id="registerBtn" class="reg-btn" onclick="registerTsum()">データベースに保存</button>
+                </div>
+                <div class="formula-note">
+                    <strong>【計算式】</strong><br>
+                    1. 各回の純利益 = (素コイン × +Coin倍率1.3) - アイテム代<br>
+                    2. 総純利益 ÷ 合計時間(分) = 1分あたりの効率
                 </div>
             </div>
         </div>
 
         <div id="dbPage" class="page">
-            <div style="padding: 15px;">
+            <div style="max-width: 800px; margin: 10px auto; width: 95%;">
                 <div class="card">
-                    <h2 style="font-size:1.2em;">マイランキング</h2>
+                    <h2>１分効率マイランキング</h2>
+                    <p style="font-size: 0.7em; color: #888;">同じアカウントでログインすればどの端末からも見れます</p>
                     <table id="dbTable">
-                        <thead><tr><th width="15%">順位</th><th>ツム名</th><th width="25%">効率</th><th width="20%">操作</th></tr></thead>
+                        <thead><tr><th>順位</th><th>ツム名</th><th>効率 (/分)</th><th>操作</th></tr></thead>
                         <tbody id="dbBody"></tbody>
                     </table>
                 </div>
@@ -156,9 +177,172 @@
     </div>
 
 <script>
-    // ※Firebase設定とロジックは前の回答と同じため省略（そのまま流用してください）
-    // ... (前回のスクリプト部分をここに貼り付け) ...
-    // ただし、モバイル対応のために inputmode="numeric" などを inputタグに追加しています。
+    const firebaseConfig = {
+        apiKey: "AIzaSyBe-rtzjJGxEAHH5JYU6mQtPBo-UUK8ATI",
+        authDomain: "tsumu-manager.firebaseapp.com",
+        projectId: "tsumu-manager",
+        storageBucket: "tsumu-manager.firebasestorage.app",
+        messagingSenderId: "835290263261",
+        appId: "1:835290263261:web:d591d3ceeff04d34b9b534"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('userInfo').innerHTML = `<img src="${user.photoURL}" alt="User"><br><div>${user.displayName}</div>`;
+            updateDBTable();
+        } else {
+            document.getElementById('loginOverlay').style.display = 'flex';
+        }
+    });
+
+    function login() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        auth.signInWithPopup(provider).catch(e => {
+            console.error("ログインエラー:", e);
+            alert("ログインに失敗しました: " + e.message);
+        });
+    }
+    
+    function logout() { auth.signOut(); }
+
+    let totalNetProfit = 0, totalRawCoins = 0, recordCount = 0, currentEfficiency = 0, time = 0, timerId = null, startTime = null, elapsedAtPause = 0;
+
+    function handleEnter(e) { if (e.key === "Enter") { e.preventDefault(); saveCoin(); } }
+
+    function saveCoin() {
+        const input = document.getElementById('coinInput');
+        const c = parseInt(input.value);
+        if (c > 0) {
+            let itemCost = 0, coinMultiplier = 1.0;
+            let hasCoinItem = document.getElementById('btnCoin').classList.contains('active');
+            if (hasCoinItem) { itemCost += 500; coinMultiplier = 1.3; }
+            if (document.getElementById('btn5to4').classList.contains('active')) itemCost += 1800;
+            if (document.getElementById('btnTime').classList.contains('active')) itemCost += 1000;
+            const netProfit = (c * coinMultiplier) - itemCost;
+            totalNetProfit += netProfit; totalRawCoins += c; recordCount++;
+            const li = document.createElement('li');
+            let subText = hasCoinItem ? `<span class="sub-info">(1.3倍: ${Math.floor(c * 1.3)}枚)</span>` : "";
+            li.innerHTML = `<div class="li-content"><span>${c} 枚 ${subText}</span><button onclick="removeLine(this, ${netProfit}, ${c})" style="color:red; border:none; background:none; cursor:pointer;">×</button></div>`;
+            document.getElementById('coinLog').appendChild(li);
+            document.getElementById('logContainer').scrollTop = document.getElementById('logContainer').scrollHeight;
+            input.value = ""; input.focus();
+        }
+    }
+
+    function removeLine(btn, profit, raw) { totalNetProfit -= profit; totalRawCoins -= raw; recordCount--; btn.closest('li').remove(); }
+
+    function calculateFinalEfficiency() {
+        const m = parseFloat(document.getElementById('inputMin').value) || 0;
+        const s = parseFloat(document.getElementById('inputSec').value) || 0;
+        const totalMin = m + (s / 60);
+        if (totalMin > 0 && recordCount > 0) {
+            currentEfficiency = Math.floor(totalNetProfit / totalMin);
+            document.getElementById('result').innerHTML = `<div style="margin-bottom:8px;"><strong>約 ${currentEfficiency.toLocaleString()} 枚 / 分</strong></div><div style="font-size:0.8em; color:#666; border-top:1px dashed #ccc; padding-top:5px;">平均素コイン: ${Math.floor(totalRawCoins / recordCount).toLocaleString()} 枚</div>`;
+            document.getElementById('registerBtn').style.display = 'block';
+        } else { alert("データが不足しています"); }
+    }
+
+    // タイマー（スリープ対応方式に変更：機能は同じです）
+    function work() {
+        const btn = document.getElementById('toggleBtn');
+        if (!startTime) {
+            startTime = Date.now() - elapsedAtPause;
+            timerId = setInterval(() => {
+                time = (Date.now() - startTime) / 1000;
+                document.getElementById('display').innerText = time.toFixed(1);
+            }, 100);
+            btn.innerText = "ストップ"; btn.style.background = "#f44336";
+        } else {
+            clearInterval(timerId);
+            elapsedAtPause = Date.now() - startTime;
+            startTime = null;
+            btn.innerText = "スタート"; btn.style.background = "#4caf50";
+        }
+    }
+    
+    function resetTimer() { 
+        clearInterval(timerId); startTime = null; elapsedAtPause = 0; time = 0; 
+        document.getElementById('display').innerText = "0.0"; 
+        document.getElementById('toggleBtn').innerText = "スタート"; 
+        document.getElementById('toggleBtn').style.background = "#4caf50"; 
+    }
+    
+    function addTime() { 
+        document.getElementById('inputMin').value = Math.floor(time / 60); 
+        document.getElementById('inputSec').value = (time % 60).toFixed(1); 
+    }
+
+    function allClear() { if(confirm("全消去しますか？")) { totalNetProfit = 0; totalRawCoins = 0; recordCount = 0; document.getElementById('coinLog').innerHTML = ""; document.getElementById('result').innerHTML = "ここに結果が表示されます"; document.getElementById('registerBtn').style.display = 'none'; resetTimer(); } }
+
+    async function registerTsum() {
+        const name = prompt("ツムの名前を入力してください");
+        if(name && auth.currentUser) {
+            try {
+                await db.collection("rankings").add({
+                    uid: auth.currentUser.uid,
+                    name: name,
+                    eff: currentEfficiency,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert("クラウドに保存しました！");
+                updateDBTable();
+            } catch (e) { alert("保存失敗: " + e.message); }
+        }
+    }
+
+    async function updateDBTable() {
+        if(!auth.currentUser) return;
+        const body = document.getElementById('dbBody');
+        try {
+            const snapshot = await db.collection("rankings").where("uid", "==", auth.currentUser.uid).get();
+            let dataList = [];
+            snapshot.forEach(doc => { dataList.push({ id: doc.id, ...doc.data() }); });
+            dataList.sort((a, b) => b.eff - a.eff);
+            body.innerHTML = dataList.length === 0 ? "<tr><td colspan='4' style='text-align:center;'>データがありません</td></tr>" : "";
+            dataList.forEach((item, i) => {
+                body.innerHTML += `
+                    <tr>
+                        <td>${i+1}位</td>
+                        <td><strong style="color:#2c3e50;">${item.name}</strong></td>
+                        <td>${item.eff.toLocaleString()}</td>
+                        <td>
+                            <button onclick="editTsumName('${item.id}', '${item.name}')" style="color:#2196f3; border:none; background:none; cursor:pointer; margin-right:10px; font-weight:bold;">編集</button>
+                            <button onclick="deleteDoc('${item.id}')" style="color:#ff5252; border:none; background:none; cursor:pointer; font-weight:bold;">削除</button>
+                        </td>
+                    </tr>`;
+            });
+        } catch (e) { body.innerHTML = `<tr><td colspan='4' style='color:red;'>読み込みエラー: ${e.message}</td></tr>`; }
+    }
+
+    async function editTsumName(id, oldName) {
+        const newName = prompt("新しいツム名を入力してください", oldName);
+        if (newName && newName !== oldName) {
+            try {
+                await db.collection("rankings").doc(id).update({ name: newName });
+                updateDBTable();
+            } catch (e) { alert("更新に失敗しました: " + e.message); }
+        }
+    }
+
+    async function deleteDoc(id) { if(confirm("削除しますか？")) { await db.collection("rankings").doc(id).delete(); updateDBTable(); } }
+
+    function showPage(pageId, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active'); el.classList.add('active');
+        if(pageId === 'dbPage') updateDBTable();
+    }
+
+    function toggleItem(id) {
+        if (document.getElementById('coinLog').children.length > 0) { alert("履歴がある間はアイテム設定を変更できません。"); return; }
+        document.getElementById(id).classList.toggle('active');
+    }
 </script>
 </body>
 </html>
