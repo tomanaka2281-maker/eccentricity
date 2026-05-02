@@ -3,13 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>ツムツム効率管理ツール</title>
+    <title>Tsum Manager Pro</title>
+    <!-- Firebase SDK (必須) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <style>
         :root { --primary-color: #4caf50; --accent-color: #ff9800; --bg-color: #f0f2f5; }
         body { margin: 0; padding: 0; font-family: "Helvetica Neue", Arial, sans-serif; background-color: var(--bg-color); color: #333; display: flex; height: 100vh; overflow: hidden; }
         
-        .sidebar { width: 200px; background: #2c3e50; color: white; display: flex; flex-direction: column; padding: 20px 0; }
-        .sidebar h2 { font-size: 1.1em; text-align: center; margin-bottom: 20px; color: #ecf0f1; }
+        /* ログイン遮断レイヤー */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .google-btn { background: #4285f4; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1em; transition: 0.3s; }
+        .google-btn:hover { background: #357abd; }
+
+        /* レイアウト */
+        .sidebar { width: 200px; background: #2c3e50; color: white; display: flex; flex-direction: column; padding: 0; }
+        .user-info { padding: 20px; border-bottom: 1px solid #444; text-align: center; background: #243342; }
+        .user-info img { width: 50px; border-radius: 50%; border: 2px solid var(--primary-color); margin-bottom: 10px; }
+        .user-info div { font-size: 0.85em; font-weight: bold; }
+        
         .nav-item { padding: 15px 20px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 0.9em; }
         .nav-item:hover { background: #34495e; }
         .nav-item.active { background: var(--primary-color); }
@@ -18,12 +33,14 @@
         .page { display: none; width: 100%; height: 100%; }
         .page.active { display: flex; }
 
+        /* パネル設定 */
         .left-panel { flex: 1; padding: 25px; overflow-y: auto; background: white; border-right: 2px solid #ddd; }
         .right-panel { width: 380px; padding: 25px; background: #f8f9fa; display: flex; flex-direction: column; gap: 15px; }
 
         .card { background: white; padding: 18px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 15px; }
         input[type="number"] { padding: 12px; border: 2px solid #eee; border-radius: 8px; font-size: 1.1em; width: 120px; }
         
+        /* 履歴・結果 */
         .log-container { height: 180px; overflow-y: auto; border: 2px solid #eee; border-radius: 10px; background: #fafafa; padding: 10px; margin-top: 10px; }
         #coinLog { list-style: decimal; padding-left: 25px; margin: 0; }
         #coinLog li { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.95em; }
@@ -41,7 +58,6 @@
         
         .warning-text { font-size: 0.75em; color: #d32f2f; margin-top: 8px; text-align: center; font-weight: bold; }
         .formula-note { font-size: 0.7em; color: #666; margin-top: 10px; line-height: 1.4; }
-
         .reg-btn { margin-top: 10px; padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: none; }
         
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
@@ -50,10 +66,22 @@
 </head>
 <body>
 
+    <!-- ログイン画面 -->
+    <div id="loginOverlay">
+        <div class="login-card">
+            <h2 style="margin-top:0;">Tsum Manager Pro</h2>
+            <p style="color:#666;">データをクラウド保存するには<br>ログインが必要です</p>
+            <button class="google-btn" onclick="login()">Googleアカウントでログイン</button>
+        </div>
+    </div>
+
     <div class="sidebar">
-        <h2>Tsum Manager</h2>
-        <div class="nav-item active" onclick="showPage('calcPage', this)">効率計算</div>
-        <div class="nav-item" onclick="showPage('dbPage', this)">データベース</div>
+        <div id="userInfo" class="user-info">
+            <!-- ユーザー情報がここに表示される -->
+        </div>
+        <div class="nav-item active" onclick="showPage('calcPage', this)">🧮 効率計算</div>
+        <div class="nav-item" onclick="showPage('dbPage', this)">📊 ランキング</div>
+        <div class="nav-item" style="margin-top:auto; color:#ff7a7a; font-size: 0.8em;" onclick="logout()">🚪 ログアウト</div>
     </div>
 
     <div class="main-content">
@@ -61,10 +89,10 @@
         <div id="calcPage" class="page active">
             <div class="left-panel">
                 <div class="card" style="border-left: 8px solid #ffeb3b;">
-                    <h3>素コイン枚数入力(リザルト前の枚数を入力してください)</h3>
+                    <h3>コイン入力</h3>
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <input type="number" id="coinInput" onkeydown="handleEnter(event)" placeholder="枚数">
-                        <button onclick="saveCoin()" style="padding: 10px 20px; background: #eee; border-radius: 8px;">記録(Enter)</button>
+                        <button onclick="saveCoin()" style="padding: 10px 20px; background: #eee; border-radius: 8px; cursor: pointer;">記録</button>
                     </div>
                     <div class="item-btns">
                         <button id="btnCoin" class="active" onclick="toggleItem('btnCoin')">+Coin</button>
@@ -72,7 +100,7 @@
                         <button id="btnTime" onclick="toggleItem('btnTime')">+Time</button>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-top: 15px;">
-                        <span style="font-weight: bold; font-size: 0.9em; color: #666;">記録</span>
+                        <span style="font-weight: bold; font-size: 0.9em; color: #666;">履歴</span>
                         <button onclick="allClear()" style="color: #999; border: none; background: none; text-decoration: underline; cursor: pointer;">全消去</button>
                     </div>
                     <div class="log-container" id="logContainer">
@@ -80,7 +108,7 @@
                     </div>
                 </div>
                 <div class="card" style="border-left: 8px solid #2196f3;">
-                    <h3>合計時間</h3>
+                    <h3>合計時間の設定</h3>
                     <input type="number" id="inputMin" placeholder="分"> 分
                     <input type="number" id="inputSec" placeholder="秒" step="0.1"> 秒
                 </div>
@@ -92,14 +120,14 @@
                     <button id="toggleBtn" onclick="work()" style="background: #4caf50;">スタート</button>
                     <div class="warning-text">※他アプリや別サイトを開いている間は<br>ストップウォッチは正しく動作しません。</div>
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <button onclick="resetTimer()" style="flex: 1; padding: 12px; background: #fff; border: 1px solid #ccc; border-radius: 8px;">リセット</button>
-                        <button onclick="addTime()" style="flex: 2; padding: 12px; background: #2196f3; color: white; border-radius: 8px;">タイムを転送</button>
+                        <button onclick="resetTimer()" style="flex: 1; padding: 12px; background: #fff; border: 1px solid #ccc; border-radius: 8px; cursor: pointer;">リセット</button>
+                        <button onclick="addTime()" style="flex: 2; padding: 12px; background: #2196f3; color: white; border-radius: 8px; cursor: pointer;">タイムを転送</button>
                     </div>
                 </div>
-                <button class="calc-btn" onclick="calculateFinalEfficiency()">計算結果を見る！</button>
+                <button class="calc-btn" onclick="calculateFinalEfficiency()">検証結果を見る！</button>
                 <div id="result-container">
                     <div id="result">ここに結果が表示されます</div>
-                    <button id="registerBtn" class="reg-btn" onclick="registerTsum()">この結果をデータベースに保存</button>
+                    <button id="registerBtn" class="reg-btn" onclick="registerTsum()">この結果をクラウドに保存</button>
                 </div>
                 <div class="formula-note">
                     <strong>【計算式】</strong><br>
@@ -113,69 +141,72 @@
         <div id="dbPage" class="page">
             <div style="max-width: 700px; margin: 30px auto; width: 90%;">
                 <div class="card">
-                    <h2>1分効率マイランキング</h2>
+                    <h2>📊 クラウドランキング</h2>
+                    <p style="font-size: 0.8em; color: #888;">同じアカウントでログインすればどの端末からも見れます</p>
                     <table id="dbTable">
                         <thead>
-                            <tr><th>順位</th><th>ツム名</th><th>効率 (/分)</th><th>　　</th></tr>
+                            <tr><th>順位</th><th>ツム名</th><th>効率 (/分)</th><th>操作</th></tr>
                         </thead>
                         <tbody id="dbBody"></tbody>
                     </table>
-                    <button onclick="clearDB()" style="margin-top: 20px; color: #999; border: none; background: none; text-decoration: underline; cursor: pointer;">ランキングをリセット</button>
                 </div>
             </div>
         </div>
     </div>
 
 <script>
-    let totalNetProfit = 0;
-    let totalRawCoins = 0;
-    let recordCount = 0;
-    let currentEfficiency = 0;
-    let time = 0;
-    let timerId = null;
+    // --- 【重要】Firebase設定 ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBe-rtzjJGxEAHH5JYU6mQtPBo-UUK8ATI",
+        authDomain: "tsumu-manager.firebaseapp.com",
+        projectId: "tsumu-manager",
+        storageBucket: "tsumu-manager.firebasestorage.app",
+        messagingSenderId: "835290263261",
+        appId: "1:835290263261:web:d591d3ceeff04d34b9b534"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // ログイン状態監視
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('userInfo').innerHTML = `
+                <img src="${user.photoURL}" alt="User"><br>
+                <div>${user.displayName}</div>
+            `;
+            updateDBTable();
+        } else {
+            document.getElementById('loginOverlay').style.display = 'flex';
+        }
+    });
+
+    function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+    function logout() { auth.signOut(); }
+
+    // --- 計算ロジック ---
+    let totalNetProfit = 0, totalRawCoins = 0, recordCount = 0, currentEfficiency = 0, time = 0, timerId = null;
 
     function handleEnter(e) { if (e.key === "Enter") { e.preventDefault(); saveCoin(); } }
-
-    function showPage(pageId, el) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        el.classList.add('active');
-        if(pageId === 'dbPage') updateDBTable();
-    }
-
-    function toggleItem(id) {
-        if (document.getElementById('coinLog').children.length > 0) {
-            alert("履歴がある間はアイテム設定を変更できません。");
-            return;
-        }
-        document.getElementById(id).classList.toggle('active');
-    }
 
     function saveCoin() {
         const input = document.getElementById('coinInput');
         const c = parseInt(input.value);
         if (c > 0) {
-            let itemCost = 0;
-            let coinMultiplier = 1.0;
+            let itemCost = 0, coinMultiplier = 1.0;
             let hasCoinItem = document.getElementById('btnCoin').classList.contains('active');
-            
             if (hasCoinItem) { itemCost += 500; coinMultiplier = 1.3; }
             if (document.getElementById('btn5to4').classList.contains('active')) itemCost += 1800;
             if (document.getElementById('btnTime').classList.contains('active')) itemCost += 1000;
 
             const netProfit = (c * coinMultiplier) - itemCost;
-            totalNetProfit += netProfit;
-            totalRawCoins += c;
-            recordCount++;
+            totalNetProfit += netProfit; totalRawCoins += c; recordCount++;
 
             const li = document.createElement('li');
             let subText = hasCoinItem ? `<span class="sub-info">(1.3倍: ${Math.floor(c * 1.3)}枚)</span>` : "";
-            
-            li.innerHTML = `<div class="li-content">
-                <span>${c} 枚 ${subText}</span>
-                <button onclick="removeLine(this, ${netProfit}, ${c})" style="color:red; border:none; background:none; cursor:pointer;">×</button>
-            </div>`;
+            li.innerHTML = `<div class="li-content"><span>${c} 枚 ${subText}</span><button onclick="removeLine(this, ${netProfit}, ${c})" style="color:red; border:none; background:none; cursor:pointer;">×</button></div>`;
             document.getElementById('coinLog').appendChild(li);
             document.getElementById('logContainer').scrollTop = document.getElementById('logContainer').scrollHeight;
             input.value = ""; input.focus();
@@ -183,9 +214,7 @@
     }
 
     function removeLine(btn, profit, raw) {
-        totalNetProfit -= profit;
-        totalRawCoins -= raw;
-        recordCount--;
+        totalNetProfit -= profit; totalRawCoins -= raw; recordCount--;
         btn.closest('li').remove();
     }
 
@@ -193,18 +222,17 @@
         const m = parseFloat(document.getElementById('inputMin').value) || 0;
         const s = parseFloat(document.getElementById('inputSec').value) || 0;
         const totalMin = m + (s / 60);
-
         if (totalMin > 0 && recordCount > 0) {
             currentEfficiency = Math.floor(totalNetProfit / totalMin);
-            const avgRaw = Math.floor(totalRawCoins / recordCount);
             document.getElementById('result').innerHTML = `
                 <div style="margin-bottom:8px;"><strong>約 ${currentEfficiency.toLocaleString()} 枚 / 分</strong></div>
-                <div style="font-size:0.8em; color:#666; border-top:1px dashed #ccc; padding-top:5px;">平均素コイン: ${avgRaw.toLocaleString()} 枚</div>
+                <div style="font-size:0.8em; color:#666; border-top:1px dashed #ccc; padding-top:5px;">平均素コイン: ${Math.floor(totalRawCoins / recordCount).toLocaleString()} 枚</div>
             `;
             document.getElementById('registerBtn').style.display = 'block';
         } else { alert("データが不足しています"); }
     }
 
+    // ストップウォッチ
     function work() {
         const btn = document.getElementById('toggleBtn');
         if (!timerId) {
@@ -215,51 +243,51 @@
             btn.innerText = "スタート"; btn.style.background = "#4caf50";
         }
     }
-    function resetTimer() {
-        clearInterval(timerId); timerId = null; time = 0;
-        document.getElementById('display').innerText = "0.0";
-        document.getElementById('toggleBtn').innerText = "スタート";
-        document.getElementById('toggleBtn').style.background = "#4caf50";
-    }
-    function addTime() {
-        document.getElementById('inputMin').value = Math.floor(time / 60);
-        document.getElementById('inputSec').value = (time % 60).toFixed(1);
-    }
+    function resetTimer() { clearInterval(timerId); timerId = null; time = 0; document.getElementById('display').innerText = "0.0"; document.getElementById('toggleBtn').innerText = "スタート"; document.getElementById('toggleBtn').style.background = "#4caf50"; }
+    function addTime() { document.getElementById('inputMin').value = Math.floor(time / 60); document.getElementById('inputSec').value = (time % 60).toFixed(1); }
 
-    function allClear() {
-        if(confirm("全消去しますか？")) {
-            totalNetProfit = 0; totalRawCoins = 0; recordCount = 0;
-            document.getElementById('coinLog').innerHTML = "";
-            document.getElementById('result').innerHTML = "ここに結果が表示されます";
-            document.getElementById('registerBtn').style.display = 'none';
-            resetTimer();
-        }
-    }
+    function allClear() { if(confirm("全消去しますか？")) { totalNetProfit = 0; totalRawCoins = 0; recordCount = 0; document.getElementById('coinLog').innerHTML = ""; document.getElementById('result').innerHTML = "ここに結果が表示されます"; document.getElementById('registerBtn').style.display = 'none'; resetTimer(); } }
 
-    function registerTsum() {
+    // --- クラウドDB操作 ---
+    async function registerTsum() {
         const name = prompt("ツムの名前を入力してください");
-        if(name) {
-            let db = JSON.parse(localStorage.getItem('tsumData')) || [];
-            db.push({ name: name, eff: currentEfficiency });
-            localStorage.setItem('tsumData', JSON.stringify(db));
-            alert("登録完了！");
+        if(name && auth.currentUser) {
+            await db.collection("rankings").add({
+                uid: auth.currentUser.uid,
+                name: name,
+                eff: currentEfficiency,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert("クラウドに保存しました！");
+            updateDBTable();
         }
     }
-    function updateDBTable() {
+
+    async function updateDBTable() {
+        if(!auth.currentUser) return;
+        const snapshot = await db.collection("rankings").where("uid", "==", auth.currentUser.uid).orderBy("eff", "desc").get();
         const body = document.getElementById('dbBody');
-        let db = JSON.parse(localStorage.getItem('tsumData')) || [];
-        db.sort((a,b) => b.eff - a.eff);
-        body.innerHTML = db.map((item, i) => `
-            <tr><td>${i+1}位</td><td>${item.name}</td><td>${item.eff.toLocaleString()}</td><td><button onclick="deleteDBItem(${i})" style="color:red; border:none; background:none; cursor:pointer;">削除</button></td></tr>
-        `).join('');
+        body.innerHTML = "";
+        let i = 1;
+        snapshot.forEach(doc => {
+            const item = doc.data();
+            body.innerHTML += `<tr><td>${i++}位</td><td>${item.name}</td><td>${item.eff.toLocaleString()}</td><td><button onclick="deleteDoc('${doc.id}')" style="color:red; border:none; background:none; cursor:pointer;">削除</button></td></tr>`;
+        });
     }
-    function deleteDBItem(i) {
-        let db = JSON.parse(localStorage.getItem('tsumData'));
-        db.splice(i, 1);
-        localStorage.setItem('tsumData', JSON.stringify(db));
-        updateDBTable();
+
+    async function deleteDoc(id) { if(confirm("削除しますか？")) { await db.collection("rankings").doc(id).delete(); updateDBTable(); } }
+
+    function showPage(pageId, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active'); el.classList.add('active');
+        if(pageId === 'dbPage') updateDBTable();
     }
-    function clearDB() { if(confirm("ランキングをリセットしますか？")) { localStorage.removeItem('tsumData'); updateDBTable(); } }
+
+    function toggleItem(id) {
+        if (document.getElementById('coinLog').children.length > 0) { alert("履歴がある間はアイテム設定を変更できません。"); return; }
+        document.getElementById(id).classList.toggle('active');
+    }
 </script>
 </body>
 </html>
