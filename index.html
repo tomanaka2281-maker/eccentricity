@@ -118,7 +118,7 @@
     <div class="sidebar">
         <div id="userInfo" class="user-info"></div>
         <div class="nav-item active" onclick="showPage('calcPage', this)">効率計算</div>
-        <div class="nav-item" onclick="showPage('dbPage', this)">データベース</div>
+        <div class="nav-item" onclick="showPage('dbPage', this)">マイランキング</div>
         <div class="nav-item" style="color:#ff7a7a;" onclick="logout()">ログアウト</div>
     </div>
 
@@ -126,10 +126,10 @@
         <div id="calcPage" class="page active">
             <div class="left-panel">
                 <div class="card" style="border-left: 8px solid #ffeb3b;">
-                    <h3>素コイン枚数入力(コイン倍率前の枚数を入力してください)</h3>
+                    <h3>素コイン枚数入力</h3>
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <input type="number" id="coinInput" onkeydown="handleEnter(event)" placeholder="枚数">
-                        <button onclick="saveCoin()" style="padding: 10px 15px; background: #eee; border-radius: 8px; cursor: pointer; font-size: 0.8em;">記録(Enter)</button>
+                        <button onclick="saveCoin()" style="padding: 10px 15px; background: #eee; border-radius: 8px; cursor: pointer; font-size: 0.8em;">記録</button>
                     </div>
                     <div class="item-btns">
                         <button id="btnCoin" class="active" onclick="toggleItem('btnCoin')">+Coin</button>
@@ -159,10 +159,10 @@
                         <button onclick="addTime()" style="flex: 2; padding: 12px; background: #2196f3; color: white; border-radius: 8px; cursor: pointer; font-size: 0.8em;">タイムを転送</button>
                     </div>
                 </div>
-                <button class="calc-btn" onclick="calculateFinalEfficiency()">１分効率をみる！</button>
+                <button class="calc-btn" onclick="calculateFinalEfficiency()">１分効率を計算！</button>
                 <div id="result-container">
                     <div id="result">ここに結果が表示されます</div>
-                    <button id="registerBtn" class="reg-btn" onclick="registerTsum()">データベースに保存</button>
+                    <button id="registerBtn" class="reg-btn" onclick="registerTsum()">保存</button>
                 </div>
                 <div class="formula-note">
                     <strong>【計算式】</strong><br>
@@ -175,10 +175,10 @@
         <div id="dbPage" class="page">
             <div style="max-width: 800px; margin: 10px auto; width: 95%;">
                 <div class="card">
-                    <h2>１分効率マイランキング</h2>
+                    <h2>マイランキング</h2>
                     <p style="font-size: 0.7em; color: #888;">同じアカウントでログインすればどの端末からも見れます</p>
                     <table id="dbTable">
-                        <thead><tr><th>順位</th><th>ツム名</th><th>効率 (/分)</th><th>操作</th></tr></thead>
+                        <thead><tr><th>順位</th><th>名前</th><th>効率 (/分)</th><th>操作</th></tr></thead>
                         <tbody id="dbBody"></tbody>
                     </table>
                 </div>
@@ -330,7 +330,7 @@
     }
 
     async function editTsumName(id, oldName) {
-        const newName = prompt("新しいツム名を入力してください", oldName);
+        const newName = prompt("新しい名前を入力してください", oldName);
         if (newName && newName !== oldName) {
             try {
                 await db.collection("rankings").doc(id).update({ name: newName });
