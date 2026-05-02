@@ -164,7 +164,19 @@
         }
     });
 
-    function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+    function login() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    // ログイン時に必ずアカウント選択画面を出す設定
+    provider.setCustomParameters({
+        prompt: 'select_account'
+    });
+    
+    auth.signInWithPopup(provider).catch(e => {
+        console.error("ログインエラー:", e);
+        alert("ログインに失敗しました: " + e.message);
+    });
+}
     function logout() { auth.signOut(); }
 
     let totalNetProfit = 0, totalRawCoins = 0, recordCount = 0, currentEfficiency = 0, time = 0, timerId = null;
