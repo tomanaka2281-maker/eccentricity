@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Tsum Manager Pro</title>
-    <!-- Firebase SDK (必須) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -13,13 +13,10 @@
         :root { --primary-color: #4caf50; --accent-color: #ff9800; --bg-color: #f0f2f5; }
         body { margin: 0; padding: 0; font-family: "Helvetica Neue", Arial, sans-serif; background-color: var(--bg-color); color: #333; display: flex; height: 100vh; overflow: hidden; }
         
-        /* ログイン遮断レイヤー */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
         .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; color: #333; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .google-btn { background: #4285f4; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1em; transition: 0.3s; }
-        .google-btn:hover { background: #357abd; }
 
-        /* レイアウト */
         .sidebar { width: 200px; background: #2c3e50; color: white; display: flex; flex-direction: column; padding: 0; }
         .user-info { padding: 20px; border-bottom: 1px solid #444; text-align: center; background: #243342; }
         .user-info img { width: 50px; border-radius: 50%; border: 2px solid var(--primary-color); margin-bottom: 10px; }
@@ -33,14 +30,12 @@
         .page { display: none; width: 100%; height: 100%; }
         .page.active { display: flex; }
 
-        /* パネル設定 */
         .left-panel { flex: 1; padding: 25px; overflow-y: auto; background: white; border-right: 2px solid #ddd; }
         .right-panel { width: 380px; padding: 25px; background: #f8f9fa; display: flex; flex-direction: column; gap: 15px; }
 
         .card { background: white; padding: 18px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 15px; }
         input[type="number"] { padding: 12px; border: 2px solid #eee; border-radius: 8px; font-size: 1.1em; width: 120px; }
         
-        /* 履歴・結果 */
         .log-container { height: 180px; overflow-y: auto; border: 2px solid #eee; border-radius: 10px; background: #fafafa; padding: 10px; margin-top: 10px; }
         #coinLog { list-style: decimal; padding-left: 25px; margin: 0; }
         #coinLog li { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.95em; }
@@ -66,7 +61,6 @@
 </head>
 <body>
 
-    <!-- ログイン画面 -->
     <div id="loginOverlay">
         <div class="login-card">
             <h2 style="margin-top:0;">Tsum Manager Pro</h2>
@@ -76,16 +70,13 @@
     </div>
 
     <div class="sidebar">
-        <div id="userInfo" class="user-info">
-            <!-- ユーザー情報がここに表示される -->
-        </div>
+        <div id="userInfo" class="user-info"></div>
         <div class="nav-item active" onclick="showPage('calcPage', this)">🧮 効率計算</div>
         <div class="nav-item" onclick="showPage('dbPage', this)">📊 ランキング</div>
         <div class="nav-item" style="margin-top:auto; color:#ff7a7a; font-size: 0.8em;" onclick="logout()">🚪 ログアウト</div>
     </div>
 
     <div class="main-content">
-        <!-- ページ：計算機 -->
         <div id="calcPage" class="page active">
             <div class="left-panel">
                 <div class="card" style="border-left: 8px solid #ffeb3b;">
@@ -103,9 +94,7 @@
                         <span style="font-weight: bold; font-size: 0.9em; color: #666;">履歴</span>
                         <button onclick="allClear()" style="color: #999; border: none; background: none; text-decoration: underline; cursor: pointer;">全消去</button>
                     </div>
-                    <div class="log-container" id="logContainer">
-                        <ul id="coinLog"></ul>
-                    </div>
+                    <div class="log-container" id="logContainer"><ul id="coinLog"></ul></div>
                 </div>
                 <div class="card" style="border-left: 8px solid #2196f3;">
                     <h3>合計時間の設定</h3>
@@ -137,16 +126,13 @@
             </div>
         </div>
 
-        <!-- ページ：データベース -->
         <div id="dbPage" class="page">
             <div style="max-width: 700px; margin: 30px auto; width: 90%;">
                 <div class="card">
                     <h2>📊 クラウドランキング</h2>
                     <p style="font-size: 0.8em; color: #888;">同じアカウントでログインすればどの端末からも見れます</p>
                     <table id="dbTable">
-                        <thead>
-                            <tr><th>順位</th><th>ツム名</th><th>効率 (/分)</th><th>操作</th></tr>
-                        </thead>
+                        <thead><tr><th>順位</th><th>ツム名</th><th>効率 (/分)</th><th>操作</th></tr></thead>
                         <tbody id="dbBody"></tbody>
                     </table>
                 </div>
@@ -155,7 +141,6 @@
     </div>
 
 <script>
-    // --- 【重要】Firebase設定 ---
     const firebaseConfig = {
         apiKey: "AIzaSyBe-rtzjJGxEAHH5JYU6mQtPBo-UUK8ATI",
         authDomain: "tsumu-manager.firebaseapp.com",
@@ -169,14 +154,10 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // ログイン状態監視
     auth.onAuthStateChanged(user => {
         if (user) {
             document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('userInfo').innerHTML = `
-                <img src="${user.photoURL}" alt="User"><br>
-                <div>${user.displayName}</div>
-            `;
+            document.getElementById('userInfo').innerHTML = `<img src="${user.photoURL}" alt="User"><br><div>${user.displayName}</div>`;
             updateDBTable();
         } else {
             document.getElementById('loginOverlay').style.display = 'flex';
@@ -186,7 +167,6 @@
     function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
     function logout() { auth.signOut(); }
 
-    // --- 計算ロジック ---
     let totalNetProfit = 0, totalRawCoins = 0, recordCount = 0, currentEfficiency = 0, time = 0, timerId = null;
 
     function handleEnter(e) { if (e.key === "Enter") { e.preventDefault(); saveCoin(); } }
@@ -200,10 +180,8 @@
             if (hasCoinItem) { itemCost += 500; coinMultiplier = 1.3; }
             if (document.getElementById('btn5to4').classList.contains('active')) itemCost += 1800;
             if (document.getElementById('btnTime').classList.contains('active')) itemCost += 1000;
-
             const netProfit = (c * coinMultiplier) - itemCost;
             totalNetProfit += netProfit; totalRawCoins += c; recordCount++;
-
             const li = document.createElement('li');
             let subText = hasCoinItem ? `<span class="sub-info">(1.3倍: ${Math.floor(c * 1.3)}枚)</span>` : "";
             li.innerHTML = `<div class="li-content"><span>${c} 枚 ${subText}</span><button onclick="removeLine(this, ${netProfit}, ${c})" style="color:red; border:none; background:none; cursor:pointer;">×</button></div>`;
@@ -213,10 +191,7 @@
         }
     }
 
-    function removeLine(btn, profit, raw) {
-        totalNetProfit -= profit; totalRawCoins -= raw; recordCount--;
-        btn.closest('li').remove();
-    }
+    function removeLine(btn, profit, raw) { totalNetProfit -= profit; totalRawCoins -= raw; recordCount--; btn.closest('li').remove(); }
 
     function calculateFinalEfficiency() {
         const m = parseFloat(document.getElementById('inputMin').value) || 0;
@@ -224,55 +199,56 @@
         const totalMin = m + (s / 60);
         if (totalMin > 0 && recordCount > 0) {
             currentEfficiency = Math.floor(totalNetProfit / totalMin);
-            document.getElementById('result').innerHTML = `
-                <div style="margin-bottom:8px;"><strong>約 ${currentEfficiency.toLocaleString()} 枚 / 分</strong></div>
-                <div style="font-size:0.8em; color:#666; border-top:1px dashed #ccc; padding-top:5px;">平均素コイン: ${Math.floor(totalRawCoins / recordCount).toLocaleString()} 枚</div>
-            `;
+            document.getElementById('result').innerHTML = `<div style="margin-bottom:8px;"><strong>約 ${currentEfficiency.toLocaleString()} 枚 / 分</strong></div><div style="font-size:0.8em; color:#666; border-top:1px dashed #ccc; padding-top:5px;">平均素コイン: ${Math.floor(totalRawCoins / recordCount).toLocaleString()} 枚</div>`;
             document.getElementById('registerBtn').style.display = 'block';
         } else { alert("データが不足しています"); }
     }
 
-    // ストップウォッチ
     function work() {
         const btn = document.getElementById('toggleBtn');
         if (!timerId) {
             timerId = setInterval(() => { time += 0.1; document.getElementById('display').innerText = time.toFixed(1); }, 100);
             btn.innerText = "ストップ"; btn.style.background = "#f44336";
-        } else {
-            clearInterval(timerId); timerId = null;
-            btn.innerText = "スタート"; btn.style.background = "#4caf50";
-        }
+        } else { clearInterval(timerId); timerId = null; btn.innerText = "スタート"; btn.style.background = "#4caf50"; }
     }
     function resetTimer() { clearInterval(timerId); timerId = null; time = 0; document.getElementById('display').innerText = "0.0"; document.getElementById('toggleBtn').innerText = "スタート"; document.getElementById('toggleBtn').style.background = "#4caf50"; }
     function addTime() { document.getElementById('inputMin').value = Math.floor(time / 60); document.getElementById('inputSec').value = (time % 60).toFixed(1); }
 
     function allClear() { if(confirm("全消去しますか？")) { totalNetProfit = 0; totalRawCoins = 0; recordCount = 0; document.getElementById('coinLog').innerHTML = ""; document.getElementById('result').innerHTML = "ここに結果が表示されます"; document.getElementById('registerBtn').style.display = 'none'; resetTimer(); } }
 
-    // --- クラウドDB操作 ---
     async function registerTsum() {
         const name = prompt("ツムの名前を入力してください");
         if(name && auth.currentUser) {
-            await db.collection("rankings").add({
-                uid: auth.currentUser.uid,
-                name: name,
-                eff: currentEfficiency,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            alert("クラウドに保存しました！");
-            updateDBTable();
+            try {
+                await db.collection("rankings").add({
+                    uid: auth.currentUser.uid,
+                    name: name,
+                    eff: currentEfficiency,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert("クラウドに保存しました！");
+                updateDBTable();
+            } catch (e) { alert("保存失敗: " + e.message); }
         }
     }
 
     async function updateDBTable() {
         if(!auth.currentUser) return;
-        const snapshot = await db.collection("rankings").where("uid", "==", auth.currentUser.uid).orderBy("eff", "desc").get();
         const body = document.getElementById('dbBody');
-        body.innerHTML = "";
-        let i = 1;
-        snapshot.forEach(doc => {
-            const item = doc.data();
-            body.innerHTML += `<tr><td>${i++}位</td><td>${item.name}</td><td>${item.eff.toLocaleString()}</td><td><button onclick="deleteDoc('${doc.id}')" style="color:red; border:none; background:none; cursor:pointer;">削除</button></td></tr>`;
-        });
+        try {
+            // orderByを使わずに取得し、JavaScript側でソートすることでインデックスエラーを回避
+            const snapshot = await db.collection("rankings").where("uid", "==", auth.currentUser.uid).get();
+            let dataList = [];
+            snapshot.forEach(doc => { dataList.push({ id: doc.id, ...doc.data() }); });
+            
+            // 効率の高い順にソート
+            dataList.sort((a, b) => b.eff - a.eff);
+
+            body.innerHTML = dataList.length === 0 ? "<tr><td colspan='4' style='text-align:center;'>データがありません</td></tr>" : "";
+            dataList.forEach((item, i) => {
+                body.innerHTML += `<tr><td>${i+1}位</td><td>${item.name}</td><td>${item.eff.toLocaleString()}</td><td><button onclick="deleteDoc('${item.id}')" style="color:red; border:none; background:none; cursor:pointer;">削除</button></td></tr>`;
+            });
+        } catch (e) { body.innerHTML = `<tr><td colspan='4' style='color:red;'>読み込みエラー: ${e.message}</td></tr>`; }
     }
 
     async function deleteDoc(id) { if(confirm("削除しますか？")) { await db.collection("rankings").doc(id).delete(); updateDBTable(); } }
