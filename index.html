@@ -12,7 +12,7 @@
             display: flex; height: 100vh; overflow: hidden;
         }
 
-        /* --- PC版レイアウト --- */
+        /* --- PC版基本レイアウト --- */
         .left-panel {
             flex: 1; padding: 30px; overflow-y: auto;
             background-color: #ffffff; border-right: 2px solid #ddd;
@@ -24,25 +24,28 @@
             box-shadow: -5px 0 15px rgba(0,0,0,0.05);
         }
 
-        /* --- モバイル版レイアウト（ご要望の順序） --- */
+        /* --- モバイル版レイアウト（画面幅768px以下） --- */
         @media (max-width: 768px) {
             body { flex-direction: column; overflow-y: auto; height: auto; }
             
-            .left-panel { order: 1; padding: 15px; border-right: none; height: auto; overflow: visible; }
-            .right-panel { order: 2; width: auto; padding: 15px; box-shadow: none; background: transparent; }
-
-            .left-panel { display: flex; flex-direction: column; }
-            .time-confirm-card { order: 1; } /* 1. 合計時間の確認 */
-            .coin-record-card { order: 2; margin-top: 10px; } /* 2. コインの記録、履歴 */
-            .left-panel h1 { display: none; }
-
-            .stopwatch-card { order: 1; } /* 3. ストップウォッチ */
-            .calc-btn-item { order: 2; }
-            .result-card-container { order: 3; margin-top: 10px; padding-bottom: 40px; } /* 4. 計算結果 */
+            /* パネル全体の順番を定義 */
+            .right-panel { width: auto; order: 1; padding: 15px; box-shadow: none; } /* 計測エリアを一番上 */
+            .left-panel { order: 2; padding: 15px; border-right: none; border-top: 2px solid #ddd; height: auto; overflow: visible; } /* 記録エリアを二番目 */
+            
+            /* さらにパネル内の要素の順番を細かく指定 */
+            .right-panel { display: flex; flex-direction: column; }
+            .stopwatch-card { order: 1; }      /* ストップウォッチ */
+            .calc-btn-item { order: 2; }       /* 計算ボタン */
+            .result-card-container { order: 3; margin-top: 10px; } /* 結果を一番下 */
         }
 
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 15px; }
-        .log-container { height: 180px; overflow-y: auto; border: 2px solid #eee; border-radius: 10px; background: #fafafa; padding: 10px; margin-top: 10px; }
+
+        /* 履歴の独立スクロール窓 */
+        .log-container {
+            height: 180px; overflow-y: auto; border: 2px solid #eee;
+            border-radius: 10px; background: #fafafa; padding: 10px; margin-top: 10px;
+        }
 
         #result-container {
             min-height: 100px; display: flex; align-items: center; justify-content: center;
@@ -70,32 +73,18 @@
         #coinLog { list-style: decimal; padding-left: 25px; margin: 0; }
         #coinLog li { padding: 8px 0; border-bottom: 1px solid #eee; }
         .li-content { display: flex; justify-content: space-between; align-items: center; }
-
-        /* 注意書きのスタイル */
-        .notice { font-size: 0.7em; color: #888; text-align: center; margin-top: 8px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
-    <!-- 記録エリア -->
+    <!-- 記録エリア (PC版では左 / モバイル版では中央) -->
     <div class="left-panel">
         <h1 style="font-size: 1.4em; margin-bottom: 20px;">プレイデータ記録</h1>
-
-        <!-- 1. 合計時間の確認 (モバイル一番上) -->
-        <div class="card time-confirm-card" style="border-left: 8px solid #2196f3;">
-            <h3>合計時間の確認</h3>
-            <div class="input-group">
-                <input type="number" id="inputMin" placeholder="分"> 分
-                <input type="number" id="inputSec" placeholder="秒" step="0.1"> 秒
-            </div>
-        </div>
-
-        <!-- 2. コインを入力、履歴 (モバイル二番目) -->
-        <div class="card coin-record-card" style="border-left: 8px solid #ffeb3b;">
+        <div class="card" style="border-left: 8px solid #ffeb3b;">
             <h3>コインを入力</h3>
             <div class="input-group">
                 <input type="number" id="coinInput" onkeydown="handleEnter(event)" placeholder="枚数"> 枚
-                <button onclick="saveCoin()" style="padding: 12px 20px; background: #eee; border-radius: 8px; cursor: pointer; border:1px solid #ccc;">記録</button>
+                <button onclick="saveCoin()" style="padding: 12px 20px; background: #eee; border-radius: 8px; cursor: pointer; border:1px solid #ccc;">記録(Enter)</button>
             </div>
             <div class="item-btns" style="margin-bottom: 10px;">
                 <button id="btnCoin" class="active" onclick="toggleItem('btnCoin')">+Coin</button>
@@ -110,36 +99,54 @@
                 <ul id="coinLog"></ul>
             </div>
         </div>
+        <div class="card" style="border-left: 8px solid #2196f3;">
+            <h3>合計時間の確認</h3>
+            <div class="input-group">
+                <input type="number" id="inputMin" placeholder="分"> 分
+                <input type="number" id="inputSec" placeholder="秒" step="0.1"> 秒
+            </div>
+        </div>
     </div>
 
-    <!-- 計測エリア -->
+    <!-- 計測・結果エリア (PC版では右 / モバイル版では上・下) -->
     <div class="right-panel">
-        <!-- 3. ストップウォッチ -->
+        <!-- 計測カード -->
         <div class="card stopwatch-card">
             <div id="display">0.0</div>
+
             <button id="toggleBtn" onclick="work()" style="background: #4caf50;">スタート</button>
             <div style="display: flex; gap: 10px;">
                 <button onclick="reset()" style="flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ccc; background: #fff;">リセット</button>
-                <button onclick="add()" style="flex: 2; padding: 15px; background: #2196f3; color: white; border: none; border-radius: 10px; font-weight: bold;">タイムを上へ送る</button>
+                <button onclick="add()" style="flex: 2; padding: 15px; background: #2196f3; color: white; border: none; border-radius: 10px; font-weight: bold;">タイムを転送する</button>
             </div>
-            <!-- 注意書き -->
-            <p class="notice">※他アプリや別サイトを開いている間は<br>ストップウォッチは正しく動作しません。</p>
-        </div>
 
+            <!-- 追加した注意書き -->
+            <div style="text-align: center; color: #d32f2f; font-size: 0.8em; font-weight: bold; margin-bottom: 10px;">
+                ※他アプリや別サイトを開いている間は<br>
+                ストップウォッチは正しく動作しません。
+            </div>
+        </div>
+    
+        <!-- 計算ボタン -->
         <div class="calc-btn-item">
             <button class="calc-btn" onclick="calculateFinalEfficiency()">効率検証結果を見る！</button>
         </div>
 
-        <!-- 4. 計算結果 (モバイル一番下) -->
+        <!-- 結果表示 (モバイル時は一番下へ) -->
         <div class="result-card-container">
             <div id="result-container">
                 <div id="result" style="font-size: 1.1em; color: #856404; padding: 10px;">ここに結果が表示されます</div>
+            </div>
+            <div style="margin-top: 10px; background: #eee; padding: 10px; border-radius: 10px; font-size: 0.75em; color: #666;">
+                <strong>計算：</strong> [ (枚数 × 1.3) － 代金 ] の合計 ÷ 合計分
             </div>
         </div>
     </div>
 
 <script>
     let totalNetProfit = 0;
+    let totalRawCoins = 0; // 素コインの合計
+    let recordCount = 0;    // プレイ回数
     let time = 0;
     let timerId = null;
 
@@ -160,41 +167,71 @@
             let itemCost = 0;
             let coinMultiplier = 1.0;
             const hasCoinItem = document.getElementById('btnCoin').classList.contains('active');
+            
             if (hasCoinItem) { itemCost += 500; coinMultiplier = 1.3; }
             if (document.getElementById('btn5to4').classList.contains('active')) itemCost += 1800;
             if (document.getElementById('btnTime').classList.contains('active')) itemCost += 1000;
 
             const netProfit = (c * coinMultiplier) - itemCost;
+            
+            // データを蓄積
             totalNetProfit += netProfit;
+            totalRawCoins += c;
+            recordCount += 1;
 
             const logList = document.getElementById('coinLog');
             const li = document.createElement('li');
+            // 削除ボタンに「純利益」と「素コイン」の両方を渡す
             li.innerHTML = `<div class="li-content">
                                 <span>${c} 枚${hasCoinItem ? ' <small>(1.3)</small>' : ''}</span>
-                                <button onclick="removeLine(this, ${netProfit})" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">×</button>
+                                <button onclick="removeLine(this, ${netProfit}, ${c})" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">×</button>
                             </div>`;
+            
             logList.appendChild(li);
 
             const container = document.getElementById('logContainer');
             container.scrollTop = container.scrollHeight;
+
             coinInput.value = "";
             coinInput.focus();
         }
     }
 
-    function removeLine(btn, profit) { totalNetProfit -= profit; btn.closest('li').remove(); }
+    function removeLine(btn, profit, rawCoin) { 
+        // 削除された分を各合計から引く
+        totalNetProfit -= profit; 
+        totalRawCoins -= rawCoin;
+        recordCount -= 1;
+        btn.closest('li').remove(); 
+    }
 
     function calculateFinalEfficiency() {
         const m = parseFloat(document.getElementById('inputMin').value) || 0;
         const s = parseFloat(document.getElementById('inputSec').value) || 0;
         const totalMinutes = m + (s / 60);
-        if (totalMinutes > 0 && totalNetProfit !== 0) {
+
+        if (totalMinutes > 0 && recordCount > 0) {
             const finalEff = Math.floor(totalNetProfit / totalMinutes);
-            document.getElementById('result').innerHTML = `<strong style="font-size:1.8em; color:#e65100;">約 ${finalEff} 枚 / 分</strong>`;
+            const avgRawCoin = Math.floor(totalRawCoins / recordCount);
+
+            // 結果表示を2段にする
+            document.getElementById('result').innerHTML = `
+                <div style="margin-bottom: 8px;">
+                    <small style="font-size:0.7em; color:#666;">1分あたりの純利益</small><br>
+                    <strong style="font-size:1.6em; color:#e65100;">約 ${finalEff} 枚 / 分</strong>
+                </div>
+                <div style="border-top: 1px dashed #ffb74d; padding-top: 8px;">
+                    <small style="font-size:0.7em; color:#666;">1プレイ平均 (素コイン)</small><br>
+                    <strong style="font-size:1.3em; color:#5d4037;">${avgRawCoin} 枚</strong>
+                </div>
+            `;
+            
             if (window.innerWidth <= 768) {
                 document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
             }
-        } else { alert("データが足りません！"); }
+        } else { 
+            alert("データ（枚数と時間）が足りません！"); 
+        }
     }
 
     function work() {
@@ -222,9 +259,13 @@
 
     function allClear() {
         if (confirm("全消去しますか？")) {
-            totalNetProfit = 0; document.getElementById('coinLog').innerHTML = "";
+            totalNetProfit = 0;
+            totalRawCoins = 0;
+            recordCount = 0;
+            document.getElementById('coinLog').innerHTML = "";
             document.getElementById('result').innerHTML = "ここに結果が表示されます";
-            document.getElementById('inputMin').value = ""; document.getElementById('inputSec').value = "";
+            document.getElementById('inputMin').value = "";
+            document.getElementById('inputSec').value = "";
             reset();
         }
     }
