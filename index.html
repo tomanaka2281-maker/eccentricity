@@ -166,7 +166,7 @@
 
             <div class="right-panel">
                 <div class="card">
-                    <div id="display">0.0</div>
+                    <div id="display">00:00.0</div>
                     <button id="toggleBtn" onclick="work()" style="background: #4caf50;">スタート</button>
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
                         <button onclick="resetTimer()" style="flex: 1; padding: 12px; background: #fff; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; font-size: 0.8em;">リセット</button>
@@ -235,7 +235,6 @@
     
     function logout() { auth.signOut(); }
 
-    // historyCoins を追加
     let totalNetProfit = 0, totalRawCoins = 0, recordCount = 0, currentEfficiency = 0, time = 0, timerId = null, startTime = null, elapsedAtPause = 0, historyCoins = [];
 
     function handleEnter(e) { if (e.key === "Enter") { e.preventDefault(); saveCoin(); } }
@@ -251,7 +250,7 @@
             if (document.getElementById('btnTime').classList.contains('active')) itemCost += 1000;
             const netProfit = (c * coinMultiplier) - itemCost;
             totalNetProfit += netProfit; totalRawCoins += c; recordCount++;
-            historyCoins.push(c); // コイン履歴を保存
+            historyCoins.push(c);
             const li = document.createElement('li');
             let subText = hasCoinItem ? `<span class="sub-info">(1.3倍: ${Math.floor(c * 1.3)}枚)</span>` : "";
             li.innerHTML = `<div class="li-content"><span>${c} 枚 ${subText}</span><button onclick="removeLine(this, ${netProfit}, ${c}, ${recordCount-1})" style="color:red; border:none; background:none; cursor:pointer;">×</button></div>`;
@@ -263,7 +262,7 @@
 
     function removeLine(btn, profit, raw, index) { 
         totalNetProfit -= profit; totalRawCoins -= raw; recordCount--; 
-        historyCoins.splice(index, 1); // 履歴からも削除
+        historyCoins.splice(index, 1);
         btn.closest('li').remove(); 
     }
 
@@ -278,13 +277,30 @@
         } else { alert("データが不足しています"); }
     }
 
+    // フォーマット関数を追加
+    function formatTime(totalSeconds) {
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = Math.floor(totalSeconds % 60);
+        const ms = Math.floor((totalSeconds % 1) * 10);
+        
+        const mStr = String(m).padStart(2, '0');
+        const sStr = String(s).padStart(2, '0');
+        
+        if (h > 0) {
+            return `${h}:${mStr}:${sStr}.${ms}`;
+        } else {
+            return `${mStr}:${sStr}.${ms}`;
+        }
+    }
+
     function work() {
         const btn = document.getElementById('toggleBtn');
         if (!startTime) {
             startTime = Date.now() - elapsedAtPause;
             timerId = setInterval(() => {
                 time = (Date.now() - startTime) / 1000;
-                document.getElementById('display').innerText = time.toFixed(1);
+                document.getElementById('display').innerText = formatTime(time);
             }, 100);
             btn.innerText = "ストップ"; btn.style.background = "#f44336";
         } else {
@@ -297,7 +313,7 @@
     
     function resetTimer() { 
         clearInterval(timerId); startTime = null; elapsedAtPause = 0; time = 0; 
-        document.getElementById('display').innerText = "0.0"; 
+        document.getElementById('display').innerText = "00:00.0"; 
         document.getElementById('toggleBtn').innerText = "スタート"; 
         document.getElementById('toggleBtn').style.background = "#4caf50"; 
     }
@@ -319,8 +335,8 @@
                     uid: auth.currentUser.uid,
                     name: name,
                     eff: currentEfficiency,
-                    history: historyCoins, // コインの内訳を保存
-                    totalTime: `${m}分${s}秒`, // 合計時間を保存
+                    history: historyCoins,
+                    totalTime: `${m}分${s}秒`,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 alert("クラウドに保存しました！");
@@ -339,7 +355,6 @@
             dataList.sort((a, b) => b.eff - a.eff);
             body.innerHTML = dataList.length === 0 ? "<tr><td colspan='4' style='text-align:center;'>データがありません</td></tr>" : "";
             dataList.forEach((item, i) => {
-                // 文字列としてデータを渡すための処理
                 const historyStr = JSON.stringify(item.history || []);
                 const timeStr = item.totalTime || "記録なし";
                 body.innerHTML += `
@@ -357,7 +372,6 @@
         } catch (e) { body.innerHTML = `<tr><td colspan='4' style='color:red;'>読み込みエラー: ${e.message}</td></tr>`; }
     }
 
-    // 詳細表示用関数
     function showDetails(name, timeStr, history) {
         document.getElementById('detailTitle').innerText = name + " の詳細";
         document.getElementById('detailTime').innerText = "合計時間: " + timeStr;
