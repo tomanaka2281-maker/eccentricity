@@ -125,6 +125,8 @@
         <div class="detail-card" onclick="event.stopPropagation()">
             <h3 id="detailTitle" style="margin-top:0;">プレイ詳細</h3>
             <div id="detailTime" style="font-weight:bold; color:var(--primary-color);"></div>
+            <!-- 【追加】平均枚数表示エリア -->
+            <div id="detailAverage" style="font-size: 0.9em; color: #666; margin-top: 5px;"></div>
             <ul id="detailList" class="detail-list"></ul>
             <button onclick="document.getElementById('detailOverlay').style.display='none'" style="width:100%; margin-top:20px; padding:12px; border-radius:10px; border:none; background:#eee; cursor:pointer;">閉じる</button>
         </div>
@@ -375,15 +377,24 @@
     function showDetails(name, timeStr, history) {
         document.getElementById('detailTitle').innerText = name + " の詳細";
         document.getElementById('detailTime').innerText = "合計時間: " + timeStr;
+        
+        // 【修正】平均素コインの計算と表示
+        const avgDisplay = document.getElementById('detailAverage');
         const list = document.getElementById('detailList');
         list.innerHTML = "";
+        
         if (history && history.length > 0) {
+            const sum = history.reduce((a, b) => a + b, 0);
+            const avg = Math.floor(sum / history.length);
+            avgDisplay.innerText = "平均素コイン: " + avg.toLocaleString() + " 枚";
+
             history.forEach((coins, index) => {
                 const li = document.createElement('li');
                 li.innerHTML = `<span>${index + 1}回目</span> <span>${coins.toLocaleString()} 枚</span>`;
                 list.appendChild(li);
             });
         } else {
+            avgDisplay.innerText = "";
             list.innerHTML = "<li>内訳データがありません</li>";
         }
         document.getElementById('detailOverlay').style.display = 'flex';
