@@ -194,7 +194,7 @@
                     <h2>マイランキング</h2>
                     <p style="font-size: 0.7em; color: #888;">同じアカウントでログインすればどの端末からも見れます</p>
                     <table id="dbTable">
-                        <thead><tr><th>順位</th><th>名前</th><th>効率 (/分)</th><th>操作</th></tr></thead>
+                        <thead><tr><th>順位</th><th>名前</th><th>効率 (/分)</th><th>安定度</th><th>操作</th></tr></thead>
                         <tbody id="dbBody"></tbody>
                     </table>
                 </div>
@@ -347,6 +347,21 @@
         }
     }
 
+    // 改訂版：安定度計算関数 S = max(0, 10 * (1 - 3 * (sigma / mu)))
+    function calcStability(history) {
+        if (!history || history.length < 2) return "-";
+        const n = history.length;
+        const mu = history.reduce((a, b) => a + b, 0) / n;
+        if (mu === 0) return "0.0";
+        
+        const variance = history.reduce((a, b) => a + Math.pow(b - mu, 2), 0) / n;
+        const sigma = Math.sqrt(variance);
+        
+        const rawS = 10 * (1 - 3 * (sigma / mu));
+        const s = Math.max(0, rawS);
+        return s.toFixed(1);
+    }
+
     async function updateDBTable() {
         if(!auth.currentUser) return;
         const body = document.getElementById('dbBody');
@@ -355,15 +370,17 @@
             let dataList = [];
             snapshot.forEach(doc => { dataList.push({ id: doc.id, ...doc.data() }); });
             dataList.sort((a, b) => b.eff - a.eff);
-            body.innerHTML = dataList.length === 0 ? "<tr><td colspan='4' style='text-align:center;'>データがありません</td></tr>" : "";
+            body.innerHTML = dataList.length === 0 ? "<tr><td colspan='5' style='text-align:center;'>データがありません</td></tr>" : "";
             dataList.forEach((item, i) => {
                 const historyStr = JSON.stringify(item.history || []);
                 const timeStr = item.totalTime || "記録なし";
+                const stability = calcStability(item.history);
                 body.innerHTML += `
                     <tr>
                         <td>${i+1}位</td>
                         <td><strong style="color:#2c3e50;">${item.name}</strong></td>
                         <td>${item.eff.toLocaleString()}</td>
+                        <td>${stability}</td>
                         <td>
                             <button onclick='showDetails("${item.name}", "${timeStr}", ${historyStr})' style="color:var(--accent-color); border:none; background:none; cursor:pointer; margin-right:8px; font-weight:bold;">詳細</button>
                             <button onclick="editTsumName('${item.id}', '${item.name}')" style="color:#2196f3; border:none; background:none; cursor:pointer; margin-right:8px; font-weight:bold;">編集</button>
@@ -371,7 +388,7 @@
                         </td>
                     </tr>`;
             });
-        } catch (e) { body.innerHTML = `<tr><td colspan='4' style='color:red;'>読み込みエラー: ${e.message}</td></tr>`; }
+        } catch (e) { body.innerHTML = `<tr><td colspan='5' style='color:red;'>読み込みエラー: ${e.message}</td></tr>`; }
     }
 
     function showDetails(name, timeStr, history) {
